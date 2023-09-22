@@ -3,18 +3,18 @@
 ### 차례
 * 개발 전 주의사항
 * 개발 환경 설정
-    1. 코드 준비 및 yarn  설치
-    2. scratch-l10n 준비
-    3. scratch-vm 준비
-    4. scratch-gui 준비
-    5. UI 확인
+    *  코드 준비 및 yarn  설치
+    *  scratch-l10n 준비
+    *  scratch-vm 준비
+    *  scratch-gui 준비
+    *  UI 확인
 
 <br>
 
 ## 개발 전 주의사항
 **&nbsp;&nbsp;모든 작업은 main, develop 브랜치에서 직접 하지 말고 개별 브랜치를 생성하여 사용할 것.**
 ```bash
-    $git checkout -b [your branch name]
+    $ git checkout -b [your branch name]
 ```
 
 ### 개발에 필요한 프로그램
@@ -39,21 +39,21 @@
     ```
 
 ### 2. scratch-l10n 준비
-* scratch-l10n에서 언어 번역 관련 코드 수정 시 반드시 'yarn build 및 'yarn link'를 진행할 것.
+**&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;scratch-l10n에서 언어 번역 관련 코드 수정 시 반드시 'yarn build 및 'yarn link'를 진행할 것.**
 
-1. scratch-l10n 폴더로 이동
+* scratch-l10n 폴더로 이동
     ```bash
     $ cd scratch-l10n
     ```
-2. scratch-l10n에 node_modules 설치
+* scratch-l10n에 node_modules 설치
     ```bash
     $ yarn
     ```
-3. yarn 빌드
+* yarn 빌드
     ```bash
     $ yarn build
     ```
-4. 프로젝트 연결
+* 프로젝트 연결
     ```
     $ yarn link
     ```
