@@ -12,10 +12,13 @@
 <br>
 
 ## 개발 전 주의사항
-**&nbsp;&nbsp;모든 작업은 main, develop 브랜치에서 직접 하지 말고 개별 브랜치를 생성하여 작업 후 pull request를 이용하여 Merge 할 것.**
+**&nbsp;&nbsp;모든 작업은 main, develop 브랜치에서 직접 하지 말고 개별 브랜치를 생성하여 작업 후 pull request를 이용하여 merge 할 것.**
 ```bash
     $ git checkout -b [your branch name]
 ```
+
+* main 브랜치 : 배포판 코드
+* develop 브랜치 : 개발 및 테스트 코드
 
 ### 개발에 필요한 프로그램
 * python&nbsp;&nbsp;v3.10.9
