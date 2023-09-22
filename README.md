@@ -39,7 +39,7 @@
     ```
 
 ### 2. scratch-l10n 준비
-**&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;scratch-l10n에서 언어 번역 관련 코드 수정 시 반드시 'yarn build 및 'yarn link'를 진행할 것.**
+**&nbsp;&nbsp;&nbsp;&nbsp;scratch-l10n에서 언어 번역 관련 코드 수정 시 반드시 'yarn build 및 'yarn link'를 진행할 것.**
 
 * scratch-l10n 폴더로 이동
     ```bash
@@ -97,7 +97,7 @@
     ```
 
 ### 5. UI 확인
-* Chromium 기반 브라우저에서 아래 주소로 접속
+* Chromium 기반 브라우저(chrome, Edge)에서 아래 주소로 접속
     * http://localhost:8601<br>
     또는
     * http://127.0.0.1:8601<br>
