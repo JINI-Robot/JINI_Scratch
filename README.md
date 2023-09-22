@@ -12,7 +12,7 @@
 <br>
 
 ## 개발 전 주의사항
-**&nbsp;&nbsp;모든 작업은 main, develop 브랜치에서 직접 하지 말고 개별 브랜치를 생성하여 사용할 것.**
+**&nbsp;&nbsp;모든 작업은 main, develop 브랜치에서 직접 하지 말고 개별 브랜치를 생성하여 작업 후 pull request를 이용하여 Merge 할 것.**
 ```bash
     $ git checkout -b [your branch name]
 ```
