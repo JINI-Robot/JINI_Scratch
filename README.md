@@ -1,6 +1,6 @@
 # Scartch for JINI
 
-### 차례
+## 차례
 * 개발 전 주의사항
 * 개발 환경 설정
     *  코드 준비 및 yarn  설치
@@ -12,13 +12,9 @@
 <br>
 
 ## 개발 전 주의사항
-**&nbsp;&nbsp;모든 작업은 main, develop 브랜치에서 직접 하지 말고 개별 브랜치를 생성하여 작업 후 pull request를 이용하여 merge 할 것.**
-```bash
-    $ git checkout -b [your branch name]
-```
 
 * main 브랜치 : 배포판 코드
-* develop 브랜치 : 개발 및 테스트 코드
+* develop 브랜치 : 최종 점검 코드
 
 ### 개발에 필요한 프로그램
 * python&nbsp;&nbsp;v3.10.9
@@ -36,7 +32,7 @@
     ```bash
     $ git clone https://github.com/JiniRobots/Scratch_for_JINI
     ```
-* yarn 설치
+* yarn 글로벌 설치
     ```bash
     $ npm install -g yarn
     ```
