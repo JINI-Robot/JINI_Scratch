@@ -113,15 +113,21 @@
     ```
 
 ### 2. 패키징
-* scratch-gui > build 폴더를 scratch-app 폴더로 복사 
-* 복사된 프로그램이 정상적으로 실행하는지 확인(생략 가능)
-    ```bash
-    $ cd yarn start
-    ```
+* scratch-gui > build 폴더를 scratch-app 폴더로 복사
 * scratch-app 폴더로 이동
     ```bash
     $ cd ..          // scratch-gui의 상위 폴더로 이동
     $ cd scratch-app // scratch-app 폴더로 이동
+    ```
+
+* scratch-app에 node_modules 설치
+    ```bash
+    $ yarn
+    ```
+
+* 복사된 scratch-app > build 폴더의 프로그램 실행 확인(생략 가능)
+    ```bash
+    $ cd yarn start
     ```
 
 * 설치파일로 패키징(아래 명령어 중 해당 OS에 맞게 입력)
