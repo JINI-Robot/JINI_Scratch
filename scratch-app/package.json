@@ -1,0 +1,83 @@
+{
+  "name": "scratch-app",
+  "version": "3.1.0",
+  "description": "JINI Scratch 3.1.0",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build:osx": "electron-builder --mac",
+    "build:linux": "yarn build:linux32 && yarn build:linux64",
+    "build:linux32": "electron-builder --linux --ia32",
+    "build:linux64": "electron-builder --linux --x64",
+    "build:win": "yarn build:win32 && yarn build:win64",
+    "build:win32": "electron-builder --windows nsis:ia32",
+    "build:win64": "electron-builder --windows nsis:x64"
+  },
+  "build": {
+    "productName": "JINI Scratch",
+    "appId": "com.jinirobot.www",
+    "asar": true,
+    "protocols": {
+      "name": "JINI Scratch 3.1.0",
+      "schemes": [
+        "JINI Scratch 3.1.0"
+      ]
+    },
+    "mac": {
+      "target": [
+        "default"
+      ],
+      "icon": "./electron-root/favicon.ico"
+    },
+    "dmg": {
+      "title": "tournant",
+      "icon": "./electron-root/favicon.ico"
+    },
+    "win": {
+      "target": [
+        "zip",
+        "nsis"
+      ],
+      "icon": "./electron-root/favicon.ico"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb",
+        "rpm",
+        "zip",
+        "tar.gz"
+      ],
+      "icon": "./electron-root/favicon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": false,
+      "createDesktopShortcut": true,
+      "installerLanguages": [
+        "en_US",
+        "ko_KR"
+      ],
+      "language": "1042"
+    },
+    "directories": {
+       "buildResources": "resources/installer/",
+       "output": "dist/",
+       "app": "."
+    }
+  },
+  "keywords": [
+    "scratch",
+    "edubot",
+    "block-coding",
+    "jini robot",
+    "AIBot"
+  ],
+  "author": "JINI Robot",
+  "license": "Copyright 2023 JINIROBOT All rights reserved",
+  "devDependencies": {
+    "electron": "^26.2.2",
+    "electron-builder": "^24.6.4",
+    "electron-packager": "^17.1.2"
+  }
+}

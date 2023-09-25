@@ -1,17 +1,20 @@
 # Scartch for JINI
 
 ## 차례
-* 개발 전 주의사항
+* 개발 전 확인
 * 개발 환경 설정
     *  코드 준비 및 yarn  설치
     *  scratch-l10n 준비
     *  scratch-vm 준비
     *  scratch-gui 준비
     *  UI 확인
+* 프로젝트 빌드 및 패키징
+    * 빌드
+    * 패키징
 
 <br>
 
-## 개발 전 주의사항
+## 개발 전 확인
 
 * main 브랜치 : 배포판 코드
 * develop 브랜치 : 최종 점검 코드
@@ -67,7 +70,7 @@
     ```bash
     $ yarn
     ```
-* ml5 라이브러리 설치(인공지능 관련 라이브러리).
+* ml5 라이브러리 설치(인공지능 관련 라이브러리)
     ```bash
     $ npm install ml5
     ```
@@ -100,3 +103,30 @@
     * http://localhost:8601<br>
     또는
     * http://127.0.0.1:8601<br>
+
+## 프로젝트 빌드 및 패키징
+### 1. 빌드
+* scratch-gui 폴더로 이동 후 프로젝트 빌드
+    ```bash
+    $ cd scratch-gui
+    $ yarn build
+    ```
+
+### 2. 패키징
+* scratch-gui > build 폴더를 scratch-app 폴더로 복사 
+* 복사된 프로그램이 정상적으로 실행하는지 확인(생략 가능)
+    ```bash
+    $ cd yarn start
+    ```
+* scratch-app 폴더로 이동
+    ```bash
+    $ cd ..          // scratch-gui의 상위 폴더로 이동
+    $ cd scratch-app // scratch-app 폴더로 이동
+    ```
+
+* 설치파일로 패키징(아래 명령어 중 해당 OS에 맞게 입력)
+    ```bash
+    $ yarn build:osx    // MAC
+    $ yarn build:linux  // linux x32 and x64
+    $ yarn build:win    // windows x32 and x64 
+    ```

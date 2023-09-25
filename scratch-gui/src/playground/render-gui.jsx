@@ -58,7 +58,7 @@ export default appTarget => {
 
     if (process.env.NODE_ENV === 'production' && typeof window === 'object') {
         // Warn before navigating away
-        window.onbeforeunload = () => true;
+        //window.onbeforeunload = () => false;  // electron-app 에서 alert으로 인해 종료가 되지 않아 주석처리함. 하권, 2023.09.25
     }
 
     ReactDOM.render(

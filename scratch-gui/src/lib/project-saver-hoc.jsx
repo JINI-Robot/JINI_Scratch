@@ -57,7 +57,7 @@ const ProjectSaverHOC = function (WrappedComponent) {
             if (typeof window === 'object') {
                 // Note: it might be better to use a listener instead of assigning onbeforeunload;
                 // but then it'd be hard to turn this listening off in our tests
-                window.onbeforeunload = e => this.leavePageConfirm(e);
+                //window.onbeforeunload = e => this.leavePageConfirm(e); // electron-app 에서 alert으로 인해 종료가 되지 않아 주석처리함. 하권, 2023.09.25
             }
 
             // Allow the GUI consumer to pass in a function to receive a trigger

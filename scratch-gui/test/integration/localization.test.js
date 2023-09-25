@@ -48,7 +48,7 @@ describe('Localization', () => {
         await rightClickText('Apple', scope.spriteTile); // Make sure it is there
 
         // Remounting re-attaches the beforeunload callback. Make sure to remove it
-        driver.executeScript('window.onbeforeunload = undefined;');
+        //driver.executeScript('window.onbeforeunload = undefined;');  // electron-app 에서 alert으로 인해 종료가 되지 않아 주석처리함. 하권, 2023.09.25
 
         const logs = await getLogs();
         await expect(logs).toEqual([]);
