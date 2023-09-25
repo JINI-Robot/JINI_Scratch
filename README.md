@@ -127,7 +127,7 @@
 
 * 복사된 scratch-app > build 폴더의 프로그램 실행 확인(생략 가능)
     ```bash
-    $ cd yarn start
+    $ yarn start
     ```
 
 * 설치파일로 패키징(아래 명령어 중 해당 OS에 맞게 입력)
