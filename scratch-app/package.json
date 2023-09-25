@@ -27,18 +27,18 @@
       "target": [
         "default"
       ],
-      "icon": "./electron-root/favicon.ico"
+      "icon": "./icon.ico"
     },
     "dmg": {
       "title": "tournant",
-      "icon": "./electron-root/favicon.ico"
+      "icon": "./icon.ico"
     },
     "win": {
       "target": [
         "zip",
         "nsis"
       ],
-      "icon": "./electron-root/favicon.ico"
+      "icon": "./icon.ico"
     },
     "linux": {
       "target": [
@@ -48,7 +48,7 @@
         "zip",
         "tar.gz"
       ],
-      "icon": "./electron-root/favicon.ico"
+      "icon": "./icon.ico"
     },
     "nsis": {
       "oneClick": false,
@@ -61,9 +61,9 @@
       "language": "1042"
     },
     "directories": {
-       "buildResources": "resources/installer/",
-       "output": "dist/",
-       "app": "."
+      "buildResources": "resources/installer/",
+      "output": "dist/",
+      "app": "."
     }
   },
   "keywords": [
@@ -77,7 +77,6 @@
   "license": "Copyright 2023 JINIROBOT All rights reserved",
   "devDependencies": {
     "electron": "^26.2.2",
-    "electron-builder": "^24.6.4",
-    "electron-packager": "^17.1.2"
+    "electron-builder": "^24.6.4"
   }
 }
