@@ -108,7 +108,7 @@ class SeleniumHelper {
         return this.driver
             .get(`file://${uri}`)
             .then(() => (
-                this.driver.executeScript('window.onbeforeunload = undefined;')
+                //this.driver.executeScript('window.onbeforeunload = undefined;')  // electron-app 에서 alert으로 인해 종료가 되지 않아 주석처리함. 하권, 2023.09.25
             ))
             .then(() => (
                 this.driver.manage()
