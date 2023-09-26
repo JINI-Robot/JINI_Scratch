@@ -18,6 +18,12 @@
 
 * main 브랜치 : 배포판 코드
 * develop 브랜치 : 최종 점검 코드
+  
+|작업|병합 및 테스트|배포|tag|
+|----|:------------:|-----|-----|
+|개별 브랜치 1|develop|main|release-vx.x.x|
+|개별 브랜치 2|develop|main|release-vx.x.y|
+|개별 브랜치 3|develop|main|release-vx.x.z|
 
 ### 개발에 필요한 프로그램
 * python&nbsp;&nbsp;v3.10.9
@@ -33,7 +39,7 @@
 ### 1. 코드 준비 및 yarn 설치
 * Git 원격저장소에서 코드 다운로드
     ```bash
-    $ git clone https://github.com/JiniRobots/Scratch_for_JINI
+    $ git clone https://github.com/JINI-Robot/JINI_Scratch.git
     ```
 * yarn 글로벌 설치
     ```bash
