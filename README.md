@@ -1,5 +1,6 @@
 # Scartch for JINI
-
+* 지니로봇 전용 스크래치
+  
 ## 차례
 * 개발 전 확인
 * 개발 환경 설정
@@ -33,7 +34,7 @@
 ### 1. 코드 준비 및 yarn 설치
 * Git 원격저장소에서 코드 다운로드
     ```bash
-    $ git clone https://github.com/JiniRobots/Scratch_for_JINI
+    $ git clone https://github.com/JINI-Robot/JINI_Scratch.git
     ```
 * yarn 글로벌 설치
     ```bash
