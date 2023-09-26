@@ -33,7 +33,7 @@
 ### 1. 코드 준비 및 yarn 설치
 * Git 원격저장소에서 코드 다운로드
     ```bash
-    $ git clone https://github.com/JiniRobots/Scratch_for_JINI
+    $ git clone https://github.com/JINI-Robot/JINI_Scratch.git
     ```
 * yarn 글로벌 설치
     ```bash
