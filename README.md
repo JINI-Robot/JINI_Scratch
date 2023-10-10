@@ -104,7 +104,7 @@
     $ yarn start
     ```
 
-### 5. UI 확인
+### 5. UI 및 기능 동작 확인
 * Chromium 기반 브라우저(chrome, Edge)에서 아래 주소로 접속
     * http://localhost:8601<br>
     또는

@@ -1,7 +1,7 @@
 {
-  "name": "scratch-app",
-  "version": "3.1.0",
-  "description": "JINI Scratch 3.1.0",
+  "name": "jini-scratch",
+  "version": "3.1.1",
+  "description": "JINI Scratch 3.1.1",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
@@ -18,9 +18,9 @@
     "appId": "com.jinirobot.www",
     "asar": true,
     "protocols": {
-      "name": "JINI Scratch 3.1.0",
+      "name": "JINI Scratch 3.1.1",
       "schemes": [
-        "JINI Scratch 3.1.0"
+        "JINI Scratch 3.1.1"
       ]
     },
     "mac": {

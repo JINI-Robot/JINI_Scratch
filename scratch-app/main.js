@@ -11,9 +11,8 @@ function createWindow() {
     }
   });
   mainWindow.setMenu(null);
-
   mainWindow.loadFile('./build/index.html');
-
+  //mainWindow.openDevTools();  //디버깅용이기 때문에 배포시 주석처리 할 것. 송하권, 23.10.10
   mainWindow.on('closed', function() {
     mainWindow = null;
   });
