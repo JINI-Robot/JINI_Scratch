@@ -5,13 +5,13 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "build:osx": "electron-builder --mac",
-    "build:linux": "yarn build:linux32 && yarn build:linux64",
-    "build:linux32": "electron-builder --linux --ia32",
-    "build:linux64": "electron-builder --linux --x64",
-    "build:win": "yarn build:win32 && yarn build:win64",
-    "build:win32": "electron-builder --windows nsis:ia32",
-    "build:win64": "electron-builder --windows nsis:x64"
+    "dist:osx": "electron-builder --mac",
+    "dist:linux": "yarn dist:linux32 && yarn dist:linux64",
+    "dist:linux32": "electron-builder --linux --ia32",
+    "dist:linux64": "electron-builder --linux --x64",
+    "dist:win": "yarn dist:win32 && yarn dist:win64",
+    "dist:win32": "electron-builder --windows nsis:ia32",
+    "dist:win64": "electron-builder --windows nsis:x64"
   },
   "build": {
     "productName": "JINI Scratch",
