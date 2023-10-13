@@ -134,9 +134,9 @@
 
 * 패키징(아래 명령어 중 해당 OS에 맞게 입력)
     ```bash
-    $ yarn build:osx    // MAC
-    $ yarn build:linux  // linux x32 and x64
-    $ yarn build:win    // windows x32 and x64 
+    $ yarn dist:osx    // MAC
+    $ yarn dist:linux  // linux x32 and x64
+    $ yarn dist:win    // windows x32 and x64 
     ```
 
 * 생성된 설치 파일 확인
