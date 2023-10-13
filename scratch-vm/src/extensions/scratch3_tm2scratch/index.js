@@ -207,23 +207,8 @@ class Scratch3TM2ScratchBlocks {
         this.runtime = runtime;
         this.locale = this.setLocale();
 
-        this.video = document.createElement('video');
-        this.video.autoplay = true;
-
         this.interval = 1000;
         this.minInterval = 100;
-
-        const media = navigator.mediaDevices.getUserMedia({
-            video: {
-                width: 360,
-                height: 360
-            },
-            audio: false
-        });
-
-        media.then(stream => {
-            this.video.srcObject = stream;
-        });
 
         this.timer = setInterval(() => {
             this.classifyVideoImage();
@@ -241,7 +226,14 @@ class Scratch3TM2ScratchBlocks {
         this.soundClassifierEnabled = false;
         this.initSoundProbableLabels();
 
-        this.runtime.ioDevices.video.enableVideo();
+        this.setVideo = () => {
+            this.video = this.runtime.ioDevices.video.provider.video;
+            this.video.width = 360;
+            this.video.height = 360;
+            this.video.autoplay = true;
+        }
+
+        this.runtime.ioDevices.video.enableVideo().then(this.setVideo);
 
         let script = document.createElement('script');
         script.src = 'https://stretch3.github.io/ml5-library/ml5.min.js';
@@ -691,11 +683,11 @@ class Scratch3TM2ScratchBlocks {
      * @return {Array} - Menu items with ''.
      */
     getLabelsWithoutAnyMenu () {
-        let items = [''];
         if (this.imageMetadata) {
-            items = items.concat(this.imageMetadata.labels);
+            return this.imageMetadata.labels;
+        } else {
+            return [''];
         }
-        return items;
     }
 
     /**
@@ -913,7 +905,7 @@ class Scratch3TM2ScratchBlocks {
         if (state === 'off') {
             this.runtime.ioDevices.video.disableVideo();
         } else {
-            this.runtime.ioDevices.video.enableVideo();
+            this.runtime.ioDevices.video.enableVideo().then(this.setVideo);
             this.runtime.ioDevices.video.mirror = state === 'on';
         }
     }
