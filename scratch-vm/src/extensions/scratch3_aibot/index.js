@@ -602,26 +602,7 @@ class Scratch3aibotSR {
                             defaultValue: '90',
                         },
                     }
-                },   
-                {
-                    opcode: 'control_angle',
-                    blockType: BlockType.COMMAND,
-                    text: formatMessage({
-                        id: 'aibot.servoangle',
-                        default: 'module [SV] to [ANG] degrees',
-                        description: 'Control Angle'
-                    }),
-                    arguments: {
-                        SV: {
-                            type: ArgumentType.NUMBER,
-                            defaultValue: '1',
-                        },
-                        ANG: {
-                            type: ArgumentType.NUMBER,
-                            defaultValue: '90',
-                        },
-                    }
-                },         
+                },
                 {
                     opcode: 'control_angle_123',
                     blockType: BlockType.COMMAND,
@@ -1010,10 +991,13 @@ class Scratch3aibotSR {
                              {text: "2", value: '1'},
                              {text: "3", value: '2'}, 
                              {text: "4", value: '3'},
-                             {text: formatMessage({id: 'aibot.remote1',default: 'remote1'}), value: '4'}, 
-                             {text: formatMessage({id: 'aibot.remote2',default: 'remote2'}), value: '5'},
-                             {text: formatMessage({id: 'aibot.remote3',default: 'remote3'}), value: '6'}, 
-                             {text: formatMessage({id: 'aibot.remote4',default: 'remote4'}), value: '7'}
+                             // 원격 기능 주석 처리로 인해 드랍다운 목록에서 나타나지 않도록 조치
+                             // 추후 원격 기능 사용 시 주석 해제 요망
+                             // 송하권, 23.10.13
+                             //{text: formatMessage({id: 'aibot.remote1',default: 'remote1'}), value: '4'}, 
+                             //{text: formatMessage({id: 'aibot.remote2',default: 'remote2'}), value: '5'},
+                             //{text: formatMessage({id: 'aibot.remote3',default: 'remote3'}), value: '6'}, 
+                             //{text: formatMessage({id: 'aibot.remote4',default: 'remote4'}), value: '7'}
                            ]
                 },
                 port_inout: {
