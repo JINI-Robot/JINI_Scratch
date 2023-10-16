@@ -6,12 +6,8 @@
   "scripts": {
     "start": "electron .",
     "dist:osx": "electron-builder --mac",
-    "dist:linux": "yarn dist:linux32 && yarn dist:linux64",
-    "dist:linux32": "electron-builder --linux --ia32",
-    "dist:linux64": "electron-builder --linux --x64",
-    "dist:win": "yarn dist:win32 && yarn dist:win64",
-    "dist:win32": "electron-builder --windows nsis:ia32",
-    "dist:win64": "electron-builder --windows nsis:x64"
+    "dist:linux": "electron-builder --linux --ia32",
+    "dist:win": "electron-builder --windows nsis:ia32"
   },
   "build": {
     "productName": "JINI Scratch",
@@ -52,8 +48,10 @@
     },
     "nsis": {
       "oneClick": false,
-      "allowToChangeInstallationDirectory": false,
+      "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
+      "include": "installer.nsh",
+      "perMachine": true,
       "installerLanguages": [
         "en_US",
         "ko_KR"
@@ -73,8 +71,8 @@
     "jini robot",
     "AIBot"
   ],
-  "author": "JINI Robot",
-  "license": "Copyright 2023 JINIROBOT All rights reserved",
+  "author": "JINIROBOT",
+  "license": "Copyright © 2023 JINIROBOT All rights reserved",
   "devDependencies": {
     "electron": "^26.2.2",
     "electron-builder": "^24.6.4"
