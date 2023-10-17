@@ -138,26 +138,26 @@ module.exports = [
             new HtmlWebpackPlugin({
                 chunks: ['lib.min', 'gui'],
                 template: 'src/playground/index.ejs',
-                title: 'JINI Scratch 3.1.0',
+                title: 'JINI Scratch 3.1.1',
                 sentryConfig: process.env.SENTRY_CONFIG ? '"' + process.env.SENTRY_CONFIG + '"' : null
             }),
             new HtmlWebpackPlugin({
                 chunks: ['lib.min', 'blocksonly'],
                 template: 'src/playground/index.ejs',
                 filename: 'blocks-only.html',
-                title: 'JINI Scratch 3.1.0: Blocks Only Example'
+                title: 'JINI Scratch 3.1.1: Blocks Only Example'
             }),
             new HtmlWebpackPlugin({
                 chunks: ['lib.min', 'compatibilitytesting'],
                 template: 'src/playground/index.ejs',
                 filename: 'compatibility-testing.html',
-                title: 'JINI Scratch 3.1.0: Compatibility Testing'
+                title: 'JINI Scratch 3.1.1: Compatibility Testing'
             }),
             new HtmlWebpackPlugin({
                 chunks: ['lib.min', 'player'],
                 template: 'src/playground/index.ejs',
                 filename: 'player.html',
-                title: 'JINI Scratch 3.1.0: Player Example'
+                title: 'JINI Scratch 3.1.1: Player Example'
             }),
             new CopyWebpackPlugin([{
                 from: 'static',

@@ -563,7 +563,10 @@ class MenuBar extends React.Component {
                             username={this.props.authorUsername}
                         />
                     ) : null)}
-                    <div className={classNames(styles.menuBarItem)}>
+                    {/* 현재 불필요하므로 '공유' 버튼 숨김.
+                        line568 ~ line595
+                        송하권, 23.10.10 8 */}
+                    {/* <div className={classNames(styles.menuBarItem)}>
                         {this.props.canShare ? (
                             (this.props.isShowingProject || this.props.isUpdating) && (
                                 <ProjectWatcher onDoneUpdating={this.props.onSeeCommunity}>
@@ -572,11 +575,11 @@ class MenuBar extends React.Component {
                                             <ShareButton
                                                 className={styles.menuBarButton}
                                                 isShared={this.props.isShared}
-                                                /* eslint-disable react/jsx-no-bind */
+                                                // eslint-disable react/jsx-no-bind
                                                 onClick={() => {
                                                     this.handleClickShare(waitForUpdate);
                                                 }}
-                                                /* eslint-enable react/jsx-no-bind */
+                                                // eslint-enable react/jsx-no-bind
                                             />
                                         )
                                     }
@@ -590,8 +593,11 @@ class MenuBar extends React.Component {
                             ) : []
                         )}
                         {this.props.canRemix ? remixButton : []}
-                    </div>
-                    <div className={classNames(styles.menuBarItem, styles.communityButtonWrapper)}>
+                    </div> */}
+                    {/* 현재 불필요하므로 '프로젝트 페이지 보기' 기능 숨김.
+                        line599 ~ line622.
+                        송하권, 23.10.10 8 */}
+                    {/* <div className={classNames(styles.menuBarItem, styles.communityButtonWrapper)}>
                         {this.props.enableCommunity ? (
                             (this.props.isShowingProject || this.props.isUpdating) && (
                                 <ProjectWatcher onDoneUpdating={this.props.onSeeCommunity}>
@@ -599,11 +605,11 @@ class MenuBar extends React.Component {
                                         waitForUpdate => (
                                             <CommunityButton
                                                 className={styles.menuBarButton}
-                                                /* eslint-disable react/jsx-no-bind */
+                                                // eslint-disable react/jsx-no-bind
                                                 onClick={() => {
                                                     this.handleClickSeeCommunity(waitForUpdate);
                                                 }}
-                                                /* eslint-enable react/jsx-no-bind */
+                                                // eslint-enable react/jsx-no-bind
                                             />
                                         )
                                     }
@@ -614,12 +620,15 @@ class MenuBar extends React.Component {
                                 <CommunityButton className={styles.menuBarButton} />
                             </MenuBarItemTooltip>
                         ) : [])}
-                    </div>
+                    </div>*/}
                 </div>
 
                 {/* show the proper UI in the account menu, given whether the user is
                 logged in, and whether a session is available to log in with */}
-                <div className={styles.accountInfoGroup}>
+                {/* 현재 불필요하므로 '저장', 'scratch-cat' 버튼 숨김.
+                    line629 ~ line757
+                    송하권, 23.10.10 8 */}
+                {/* <div className={styles.accountInfoGroup}>
                     <div className={styles.menuBarItem}>
                         {this.props.canSave && (
                             <SaveStatus />
@@ -745,8 +754,7 @@ class MenuBar extends React.Component {
                             ) : []}
                         </React.Fragment>
                     )}
-                </div>
-
+                </div> */}
                 {aboutButton}
             </Box>
         );

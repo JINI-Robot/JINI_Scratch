@@ -109,40 +109,42 @@ export default [
             />
         ),
         helpLink: 'https://www.jinirobot.com'
-    },        
-    {
-        name: (
-            <FormattedMessage
-                defaultMessage="Speech Recognition"
-                description="Name for the Speech Recognition extension"
-                id="gui.extension.speech2scratch.name"
-            />
-        ),
-        //name: 'Speech2Scratch',
-        extensionId: 'speech2scratch',
-        extensionURL: '',
-        collaborator: 'Google, JINI Co.,Ltd',
-        iconURL: speech2scratchIconURL,
-        insetIconURL: speech2scratchInsetIconURL,
-        description: (
-            <FormattedMessage
-                defaultMessage="Speech2Scratch Blocks."
-                description="Description for Speech2Scratch Blocks."
-                id="gui.extension.speech2scratch.description"
-            />
-        ),
-        featured: true,
-        disabled: false,
-        internetConnectionRequired: true,
-        translationMap: {            
-            'en': {
-                'gui.extension.speech2scratch.description': 'Recognize your voice.'
-            },
-            'ko': {
-                'gui.extension.speech2scratch.description': ''
-            }
-        }
     },
+    // '음성인식' 클래스 미표시 변경으로 인해 주석 처리    
+    // {
+    //     name: (
+    //         <FormattedMessage
+    //             defaultMessage="Speech Recognition"
+    //             description="Name for the Speech Recognition extension"
+    //             id="gui.extension.speech2scratch.name"
+    //         />
+    //     ),
+    //     //name: 'Speech2Scratch',
+    //     extensionId: 'speech2scratch',
+    //     extensionURL: '',
+    //     collaborator: 'Google, JINI Co.,Ltd',
+    //     iconURL: speech2scratchIconURL,
+    //     insetIconURL: speech2scratchInsetIconURL,
+    //     description: (
+    //         <FormattedMessage
+    //             defaultMessage="Speech2Scratch Blocks."
+    //             description="Description for Speech2Scratch Blocks."
+    //             id="gui.extension.speech2scratch.description"
+    //         />
+    //     ),
+    //     featured: true,
+    //     disabled: false,
+    //     internetConnectionRequired: true,
+    //     translationMap: {            
+    //         'en': {
+    //             'gui.extension.speech2scratch.description': 'Recognize your voice.'
+    //         },
+    //         'ko': {
+    //             'gui.extension.speech2scratch.description': ''
+    //         }
+    //     }
+    // },
+    // 송하권, 2023.10.10
     {
         name: (
             <FormattedMessage
