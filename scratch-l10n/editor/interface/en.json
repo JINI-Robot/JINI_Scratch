@@ -1,4 +1,10 @@
 {
+    "gui.extension.aibot.description": "Let's learn A.I with AIBot.",
+    "gui.extension.aibot.connectingMessage": "Connecting to AIBot...",
+
+    "gui.extension.toybot.description": "Play with ToyBot.",
+    "gui.extension.toybot.connectingMessage": "Connecting to ToyBot...",
+
     "gui.extension.posenet2scratch.name": "PoseNet Recognition",
     "gui.extension.posenet2scratch.description": "Recognize your poses.",
 
@@ -23,8 +29,6 @@
     "gui.extension.ml2scratch.name": "Teachable Machine",
     "gui.extension.tm2scratch.description": "Use Teachable Machine.",
 
-    "gui.extension.aibot.description": "Let's learn A.I with AIBot.",
-    "gui.extension.aibot.connectingMessage": "Connecting to AIBot...",
     "gui.alerts.lostPeripheralConnection": "Scratch lost connection to {extensionName}.",
     "gui.alerts.tryAgain": "Try Again",
     "gui.alerts.download": "Download",
