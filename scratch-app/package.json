@@ -1,7 +1,7 @@
 {
   "name": "jini-scratch",
-  "version": "3.1.1",
-  "description": "JINI Scratch 3.1.1",
+  "version": "3.2.0",
+  "description": "JINI Scratch 3.2.0",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
@@ -14,9 +14,9 @@
     "appId": "com.jinirobot.www",
     "asar": true,
     "protocols": {
-      "name": "JINI Scratch 3.1.1",
+      "name": "JINI Scratch 3.2.0",
       "schemes": [
-        "JINI Scratch 3.1.1"
+        "JINI Scratch 3.2.0"
       ]
     },
     "mac": {
@@ -69,7 +69,8 @@
     "edubot",
     "block-coding",
     "jini robot",
-    "AIBot"
+    "AIBot",
+    "ToyBot"
   ],
   "author": "JINIROBOT",
   "license": "Copyright © 2023 JINIROBOT All rights reserved",

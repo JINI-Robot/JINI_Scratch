@@ -78,7 +78,7 @@ import aibotConnectionSmallIconURL from './aibot/aibot-small.svg';
 import aibotPeripheralImage from './aibot/aibot-illustration.svg';
 import aibotMenuImage from './aibot/aibot-small.svg';
 
-import toybotIconURL from './toybot/toybot.png';
+import toybotIconURL from './toybot/toybot_main.png';
 import toybotInsetIconURL from './toybot/toybot-small.svg';
 import toybotConnectionIconURL from './toybot/toybot-illustration.svg';
 import toybotConnectionSmallIconURL from './toybot/toybot-small.svg';
