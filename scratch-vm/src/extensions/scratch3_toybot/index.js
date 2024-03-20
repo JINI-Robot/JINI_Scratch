@@ -43,7 +43,7 @@ const PacketVerificationValue = 0xAA;
 /**
  * units: ms
  */
-const DefaultDelayTime = 10;
+const DefaultBlockReturnDelay = 1;
 /**
  * uints: ms
  */
@@ -83,9 +83,10 @@ class toybotSR {
         this._sendID = null;
         this._rateLimiter = new RateLimiter(BTSendRateMax);
 
-        this.toybotDetection = false;
-        this.toybotInfo = {
+        this._toybotDetection = false;
+        this._toybotInfo = {
             name: '',
+            mode: 0,
             distance: 0,
             button: [0, 0],
             analog: 0,
@@ -96,16 +97,16 @@ class toybotSR {
         /**
          * contents buffer
          */
-        this.contents = {
+        this._contents = {
             buffer: new Uint8Array(PacketBufferSize),
-            count: 0 
+            length: 0 
         };
         /**
          * received packet;
          */
-        this.received = {
+        this._received = {
             buffer: new Uint8Array(PacketBufferSize),
-            count: 0 
+            length: 0 
         };
     }
 
@@ -143,10 +144,46 @@ class toybotSR {
         );
 
         if(params != null) {
-            const dataOrigin = Base64Util.base64ToUint8Array(params.message);
-            const dataOnly = dataOrigin.subarray(4);  // 해더(0x40, 0x00, 0x00, 0x00) 제거 데이터
-            if (this.validateReceivedData(dataOnly)) {
-                this.handleReceivedData(dataOnly);
+            const bytes = Base64Util.base64ToUint8Array(params.message);
+            const bytesSize = bytes[0] | (bytes[1] << 8) | (bytes[2] << 16) | (bytes[3] << 24);
+            const startAddr = this._received.length;
+            for (let i = 0; i < bytesSize; i++) {
+                this._received.buffer[i + startAddr] = bytes[4 + i];
+            }
+            this._received.length += bytesSize;
+
+            while (this._received.length > PacketHeaderSize) {
+                const header = new Uint8Array([
+                    this._received.buffer[0],
+                    this._received.buffer[1],
+                    this._received.buffer[2],
+                    this._received.buffer[3],
+                    this._received.buffer[4],
+                    this._received.buffer[5]
+                ]);
+                if(this.validateReceivedData(header)) {
+                    const cLength = header[4] & 0xFF | ((header[5] << 8) & 0xFF);
+                    const pLength = PacketHeaderSize + cLength;
+                    if (this._received.length >= pLength) {
+                        const packet = new Uint8Array(pLength);
+                        for (let i = 0; i < pLength; i++) {
+                            packet[i] = this._received.buffer[i];
+                        }
+                        for (let i = 0; i < pLength; i++) {
+                            this._received.buffer[i] = this._received.buffer[pLength + i];
+                        }
+                        this._received.length -= pLength;
+                        this.handleReceivedData(packet);
+                    } else {
+                        break;
+                    }
+                } else {                    
+                    const pLength = this._received.length - 1;
+                    for (let i = 0; i < pLength; i++) {
+                        this._received.buffer[i] = this._received.buffer[i+1];
+                    }
+                    this._received.length -= 1;
+                }
             }
         }
     }
@@ -186,7 +223,7 @@ class toybotSR {
                     if (!this.isConnected() || !this._rateLimiter.okayToSend()) {
                         Promise.resolve();
                     } else {
-                        if (this.toybotDetection) {
+                        if (this._toybotDetection) {
                             const packet = this.handleIntervalSendData();
                             this._serial.sendMessage({
                                 message: Base64Util.uint8ArrayToBase64(packet),
@@ -230,22 +267,22 @@ class toybotSR {
      * 연결 성공 후 설정
      */
     init() {
-        this.toybotInfo.name = '';
-        this.toybotInfo.distance = 0;
-        this.toybotInfo.analog = 0;
-        this.contents.count = 0;
-        this.received.count = 0;
-
+        this._toybotInfo.name = '';
+        this._toybotInfo.mode = 0;
+        this._toybotInfo.distance = 0;
+        this._toybotInfo.analog = 0;
+        this._contents.length = 0;
+        this._received.length = 0;
         for (let i = 0; i < 2; i++) {            
-            this.toybotInfo.button[i] = 0;
+            this._toybotInfo.button[i] = 0;
         }
         for (let i = 0; i < 5; i++) {
-            this.toybotInfo.servo[i] = 900;
-            this.toybotInfo.servoOffset[i] = 0;
+            this._toybotInfo.servo[i] = 900;
+            this._toybotInfo.servoOffset[i] = 0;
         }
         for (let i = 0; i < PacketBufferSize; i++) {
-            this.contents.buffer[i] = 0;
-            this.received.buffer[i] = 0;
+            this._contents.buffer[i] = 0;
+            this._received.buffer[i] = 0;
         }
     }
 
@@ -253,8 +290,8 @@ class toybotSR {
      * 연결 해제 후 설정
      */
     reset() {
-        this.connected = false;
-        this.toybotDetection = false;
+        this._connected = false;
+        this._toybotDetection = false;
     }
 
     /**
@@ -270,7 +307,10 @@ class toybotSR {
     /**
      * ToyBot 감지 후 PacketSendInterval에 설정된 값에 따라 주기적으로 송신할 데이터
      */
-    handleIntervalSendData() {        
+    handleIntervalSendData() {
+        // if (this._toybotInfo.mode != DeviceMode_Control) {
+        //     this.addDeviceMode(DeviceMode_Control);
+        // }
         this.addReturn(RequestReadDatas);
         this.addHeartBeat(HeartBeat_Serial);
         return this.generatePacket();
@@ -281,42 +321,43 @@ class toybotSR {
      */
     validateReceivedData(data) {
         let verification = false;
-        if (data.length >= PacketHeaderSize) {
-            let checker = PacketVerificationValue;
-            for (let i = 1; i < PacketHeaderSize; i++) {
-                checker ^= data[i];
-            }
-            if (checker === data[0]) {
-                this.toybotDetection = true;
-                verification = true;
-            }
+        let checker = PacketVerificationValue;
+        for (let i = 1; i < PacketHeaderSize; i++) {
+            checker ^= data[i];
+        }
+        if (checker === data[0]) {
+            this._toybotDetection = true;
+            verification = true;
         }
         return verification;
     }
 
     /**
-     * 수신 데이터 검증 통과 후 처리
+     * 수신 데이터 검증 통과 후 패킷 1개 처리
      */
     handleReceivedData(data) {
         const length = data[4] | (data[5] << 8);
         let addr = 0;
-
-        while(true) {
+        while(addr < length) {
             const index = data[6 + addr];
             const cLength = data[7 + addr] | (data[8 + addr] << 8);
             switch (index) {
+                case 0x02: { // Device Mode
+                    this._toybotInfo.mode = data[9 + addr];
+                } break;
                 case 0x03: { // Device Name
-                    this.toybotInfo.name = '';
-                    for (let i = 10; i < 21; i++) {
-                        this.toybotInfo.name += String.fromCharCode(data[i + addr]);
+                    const repeat = data[9 + addr];
+                    for (let i = 0; i < repeat; i++) {
+                        this._toybotInfo.name += String.fromCharCode(data[10 + i + addr]);
                     }
                 } break;
                 case 0x13: { // Control Each
                     const repeat = data[9 + addr] * 4;
                     for (let i = 0; i < repeat; i += 4) {
                         const id = data[10 + i + addr];
+                        const speed = data[11 + i + addr];
                         const position = data[12 + i + addr] | (data[13 + i + addr] << 8);
-                        this.toybotInfo.servo[id] = position;
+                        this._toybotInfo.servo[id] = position;
                     }
                 } break;
                 case 0x1E: { // Calibration
@@ -324,24 +365,21 @@ class toybotSR {
                     for (let i = 0; i < repeat; i += 3) {
                         const id = data[10 + i + addr];
                         const offset = data[11 + i + addr] | (data[12 + i + addr] << 8);
-                        this.toybotInfo.servoOffset[id] = offset >= 32768 ? offset - 65536 : offset;
+                        this._toybotInfo.servoOffset[id] = offset >= 32768 ? offset - 65536 : offset;
                     }
                 } break;
                 case 0x43: { // Analog Value
-                    this.toybotInfo.analog = data[9 + addr] | (data[10 + addr] << 8);
+                    this._toybotInfo.analog = data[9 + addr] | (data[10 + addr] << 8);
                 } break;
                 case 0x53: { // Button Control
-                    this.toybotInfo.button[0] = data[9 + addr];
-                    this.toybotInfo.button[1] = data[10 + addr];
+                    this._toybotInfo.button[0] = data[9 + addr];
+                    this._toybotInfo.button[1] = data[10 + addr];
                 } break;
                 case 0x73: { // Ultrasonic Distance
-                    this.toybotInfo.distance = data[9 + addr] | (data[10 + addr] << 8);
+                    this._toybotInfo.distance = data[9 + addr] | (data[10 + addr] << 8);
                 } break;
             }
             addr += ContentHeaderSize + cLength;
-            if (addr >= length) {
-                break;
-            }
         }
     }
 
@@ -354,32 +392,32 @@ class toybotSR {
     }
 
     generatePacket() {
-        const cCount = this.contents.count;
-        const packet = new Uint8Array(PacketHeaderSize + cCount);        
+        const cLength = this._contents.length;
+        const packet = new Uint8Array(PacketHeaderSize + cLength);
         packet[0] = PacketVerificationValue;
         packet[1] = PacketVerificationValue;
         packet[2] = ProtocolType;
         packet[3] = ProtocolVerison;
-        packet[4] = cCount & 0xFF;
-        packet[5] = (cCount >> 8) & 0xFF;
-        for (let i = 0; i < cCount; i++) {
-            packet[1] ^= this.contents.buffer[i];
-            packet[PacketHeaderSize + i] = this.contents.buffer[i];
+        packet[4] = cLength & 0xFF;
+        packet[5] = (cLength >> 8) & 0xFF;
+        for (let i = 0; i < cLength; i++) {
+            packet[1] ^= this._contents.buffer[i];
+            packet[PacketHeaderSize + i] = this._contents.buffer[i];
         }
         for (let i = 1; i < PacketHeaderSize; i++) {
             packet[0] ^= packet[i];
         }
-        this.contents.count = 0;
+        this._contents.length = 0;
         return packet;
     }
 
     pushContents(data) {
         const dLength = data.length;
-        const cCount = this.contents.count;
+        const cLength = this._contents.length;
         for (let i = 0; i < dLength; i++) {
-            this.contents.buffer[i + cCount] = data[i];
+            this._contents.buffer[i + cLength] = data[i];
         }
-        this.contents.count += dLength;
+        this._contents.length += dLength;
     }
 
     addReturn(callData) {
@@ -986,25 +1024,25 @@ class Scratch3toybotSR {
     }
 
     get_ultrasonic_distance() {
-        const mm = this._peripheral.toybotInfo.distance;
+        const mm = this._peripheral._toybotInfo.distance;
         return mm / 10;
     }
 
     get_button_state(args) {
         const button = Number(args['BUTTON']);
-        const state = this._peripheral.toybotInfo.button;
+        const state = this._peripheral._toybotInfo.button;
         return state[button] > 0 ? 1 : 0;
 
     }
 
     get_analog_input() {
-        const value = this._peripheral.toybotInfo.analog;
+        const value = this._peripheral._toybotInfo.analog;
         return Math.round((value / 1024) * 100)
     }
 
     get_servo_angle(args) {
         const servo = Number(args['SERVO']);
-        const angles = this._peripheral.toybotInfo.servo;
+        const angles = this._peripheral._toybotInfo.servo;
         return Math.round(angles[servo] / 10);
     }
 
@@ -1027,7 +1065,7 @@ class Scratch3toybotSR {
             case 8: rgb.r = 0x7F; rgb.g = 0x00; rgb.b = 0xFF; break; // Violet
         }
         this._peripheral.addLedControl(rgb);
-        return this.returnDelay(DefaultDelayTime);
+        return this.returnDelay(DefaultBlockReturnDelay);
     }
 
     set_led_rgb(args) {
@@ -1045,7 +1083,7 @@ class Scratch3toybotSR {
             b: limit(Math.round(Number(args['BLUE']) * 2.55))
         };
         this._peripheral.addLedControl(rgb);
-        return this.returnDelay(DefaultDelayTime);
+        return this.returnDelay(DefaultBlockReturnDelay);
     }
     
     set_play_score(args) {
@@ -1086,7 +1124,7 @@ class Scratch3toybotSR {
             play: 1
         };
         this._peripheral.addMelodyPlayList(list);
-        return this.returnDelay(DefaultDelayTime);
+        return this.returnDelay(DefaultBlockReturnDelay);
     }
 
     set_play_melody(args) {
@@ -1095,7 +1133,7 @@ class Scratch3toybotSR {
             play: 1
         };
         this._peripheral.addMelodyPlayList(list);
-        return this.returnDelay(DefaultDelayTime);
+        return this.returnDelay(DefaultBlockReturnDelay);
     }
 
     set_servo_each(args) {
@@ -1110,7 +1148,7 @@ class Scratch3toybotSR {
             servo.position = 1800;
         }
         this._peripheral.addServoControl(servo);
-        return this.returnDelay(DefaultDelayTime);
+        return this.returnDelay(DefaultBlockReturnDelay);
     }
 
     set_servo_all(args) {
@@ -1130,7 +1168,7 @@ class Scratch3toybotSR {
             { id: 4, speed: speed, position: position[4] },
         ];
         this._peripheral.addServoControl(servo);
-        return this.returnDelay(DefaultDelayTime);
+        return this.returnDelay(DefaultBlockReturnDelay);
     }
 
     set_servo_home(args) {        
@@ -1143,13 +1181,13 @@ class Scratch3toybotSR {
             { id: 4, speed: speed, position: 900 },
         ];
         this._peripheral.addServoControl(servo);
-        return this.returnDelay(DefaultDelayTime);
+        return this.returnDelay(DefaultBlockReturnDelay);
     }
     
     set_analog_output(args) {
         const pwm =  Math.round(Number(args['PWM']) * 10.23);
         this._peripheral.addPwmControl(pwm);
-        return this.returnDelay(DefaultDelayTime);
+        return this.returnDelay(DefaultBlockReturnDelay);
     }
 
     set_dc_run(args) {
@@ -1164,13 +1202,13 @@ class Scratch3toybotSR {
         } else {
             this._peripheral.addDcControl(dc);
         }
-        return this.returnDelay(DefaultDelayTime);
+        return this.returnDelay(DefaultBlockReturnDelay);
     }
 
     set_servo_offset(args) {
         const id = Number(args['SERVO']);
-        const position = this._peripheral.toybotInfo.servo;
-        const offset = this._peripheral.toybotInfo.servoOffset;
+        const position = this._peripheral._toybotInfo.servo;
+        const offset = this._peripheral._toybotInfo.servoOffset;
         const servoOffset = [
             { id: 0, offset: position[0] - 900 + offset[0] },
             { id: 1, offset: position[1] - 900 + offset[1] },
@@ -1183,7 +1221,7 @@ class Scratch3toybotSR {
         } else {
             this._peripheral.addServoOffset(servoOffset);
         }
-        return this.returnDelay(DefaultDelayTime);
+        return this.returnDelay(DefaultBlockReturnDelay);
     }
 
     set_servo_reset() {
@@ -1195,7 +1233,7 @@ class Scratch3toybotSR {
             { id: 4, offset: 0 },
         ];
         this._peripheral.addServoOffset(servoOffset);
-        return this.returnDelay(DefaultDelayTime);
+        return this.returnDelay(DefaultBlockReturnDelay);
     }
 
     // end of block handlers
