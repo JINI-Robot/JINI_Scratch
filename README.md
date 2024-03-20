@@ -43,7 +43,7 @@
     ```
 
 ### 2. scratch-l10n 준비
-**&nbsp;&nbsp;&nbsp;scratch-l10n에서 언어 번역 관련 코드 수정 시 매번 반드시 'yarn build' 를 진행할 것.**
+**&nbsp;&nbsp;&nbsp;scratch-l10n에서 언어 번역 관련 코드 수정 시 매번 반드시 scratch-gui 종료 → scratch-l10n 폴더에서 'yarn build' → scratch-gui 재실행 순으로 진행 것.**
 
 * scratch-l10n 폴더로 이동
     ```bash
