@@ -23,6 +23,7 @@ const UltrasonicDistance = 0x73;
 // Content value
 const DeviceReturn_Repeat = 0x02;
 const DeviceMode_Control = 0x03;
+const HeartBeat_Serial = 0x01;
 const RequestReadDatas = [
     {index: ServoControlEach,        repeat: DeviceReturn_Repeat},
     {index: ServoControlCalibration, repeat: DeviceReturn_Repeat},
@@ -30,22 +31,23 @@ const RequestReadDatas = [
     {index: ButtonControl,           repeat: DeviceReturn_Repeat},
     {index: UltrasonicDistance,      repeat: DeviceReturn_Repeat}
 ];
-const requestReadName = [
+const RequestReadName = [
     {index: DeviceName, repeat: DeviceReturn_Repeat}
 ]
 
+const PacketBufferSize = 256;
+const PacketHeaderSize = 6;
+const ContentHeaderSize = 3;
+const PacketVerificationValue = 0xAA;
+
 /**
- * units: mm
+ * units: ms
  */
 const DefaultDelayTime = 10;
 /**
- * uints: mm
+ * uints: ms
  */
 const PacketSendInterval = 40;
-/**
- * uints: mm
- */
-const LostTime = 1000;
 
 /**
  * A maximum number of BT message sends per second, to be enforced by the rate limiter.
@@ -94,11 +96,17 @@ class toybotSR {
         /**
          * contents buffer
          */
-        this.cBuffer = [];
+        this.contents = {
+            buffer: new Uint8Array(PacketBufferSize),
+            count: 0 
+        };
         /**
          * received packet;
          */
-        this.rPacket = [];
+        this.received = {
+            buffer: new Uint8Array(PacketBufferSize),
+            count: 0 
+        };
     }
 
     /**
@@ -178,11 +186,19 @@ class toybotSR {
                     if (!this.isConnected() || !this._rateLimiter.okayToSend()) {
                         Promise.resolve();
                     } else {
-                        const packet = this.handleSendData();
-                        this._serial.sendMessage({
-                            message: Base64Util.uint8ArrayToBase64(packet),
-                            encoding: 'base64'
-                        });
+                        if (this.toybotDetection) {
+                            const packet = this.handleIntervalSendData();
+                            this._serial.sendMessage({
+                                message: Base64Util.uint8ArrayToBase64(packet),
+                                encoding: 'base64'
+                            });
+                        } else {
+                            const packet = this.handleInitSendData();
+                            this._serial.sendMessage({
+                                message: Base64Util.uint8ArrayToBase64(packet),
+                                encoding: 'base64'
+                            });
+                        }
                     }
                 }, 
                 PacketSendInterval
@@ -214,16 +230,23 @@ class toybotSR {
      * 연결 성공 후 설정
      */
     init() {
-        this.toybotInfo = {
-            name: '',
-            distance: 0,
-            button: [0, 0],
-            analog: 0,
-            servo: [900, 900, 900, 900, 900],
-            servoOffset: [0, 0, 0, 0, 0]
-        };
-        this.cBuffer = [];
-        this.rPacket = [];
+        this.toybotInfo.name = '';
+        this.toybotInfo.distance = 0;
+        this.toybotInfo.analog = 0;
+        this.contents.count = 0;
+        this.received.count = 0;
+
+        for (let i = 0; i < 2; i++) {            
+            this.toybotInfo.button[i] = 0;
+        }
+        for (let i = 0; i < 5; i++) {
+            this.toybotInfo.servo[i] = 900;
+            this.toybotInfo.servoOffset[i] = 0;
+        }
+        for (let i = 0; i < PacketBufferSize; i++) {
+            this.contents.buffer[i] = 0;
+            this.received.buffer[i] = 0;
+        }
     }
 
     /**
@@ -235,35 +258,22 @@ class toybotSR {
     }
 
     /**
-     * sendDuration에서 설정된 값으로 주기적인 송신 데이터 생성
+     * COM port 연결 후 ToyBot 감지 전까지 송신할 데이터
      */
-    handleSendData() {
-        if (this.toybotDetection) {
-            this.addReturn(RequestReadDatas);
-            this.addHeartBeat();
-        } else {
-            this.addReturn(requestReadName);
-            this.addDeviceMode(DeviceMode_Control);
-            this.addHeartBeat();
-        }
+    handleInitSendData() {
+        this.addReturn(RequestReadName);
+        this.addDeviceMode(DeviceMode_Control);
+        this.addHeartBeat(HeartBeat_Serial);
+        return this.generatePacket();
+    }
 
-        const sPacket = new Uint8Array(6 + this.cBuffer.length);
-        sPacket[0] = 0xAA;
-        sPacket[1] = 0xAA;
-        sPacket[2] = ProtocolType;
-        sPacket[3] = ProtocolVerison;
-        sPacket[4] = this.cBuffer.length & 0xFF;
-        sPacket[5] = (this.cBuffer.length >> 8) & 0xFF;
-        for (let i = 0; i < this.cBuffer.length; i++) {
-            sPacket[1] ^= this.cBuffer[i];
-            sPacket[6 + i] = this.cBuffer[i];
-        }
-        for (let i = 1; i < 6; i++) {
-            sPacket[0] ^= sPacket[i];
-        }
-        this.cBuffer = [];
-
-        return sPacket;
+    /**
+     * ToyBot 감지 후 PacketSendInterval에 설정된 값에 따라 주기적으로 송신할 데이터
+     */
+    handleIntervalSendData() {        
+        this.addReturn(RequestReadDatas);
+        this.addHeartBeat(HeartBeat_Serial);
+        return this.generatePacket();
     }
 
     /**
@@ -271,9 +281,9 @@ class toybotSR {
      */
     validateReceivedData(data) {
         let verification = false;
-        if (data.length >= 6) {
-            let checker = 0xAA;
-            for (let i = 1; i < 6; i++) {
+        if (data.length >= PacketHeaderSize) {
+            let checker = PacketVerificationValue;
+            for (let i = 1; i < PacketHeaderSize; i++) {
                 checker ^= data[i];
             }
             if (checker === data[0]) {
@@ -289,47 +299,47 @@ class toybotSR {
      */
     handleReceivedData(data) {
         const length = data[4] | (data[5] << 8);
-        let count = 0;
+        let addr = 0;
 
         while(true) {
-            const index = data[6 + count];
-            const size = data[7 + count] | (data[8 + count] << 8);
+            const index = data[6 + addr];
+            const cLength = data[7 + addr] | (data[8 + addr] << 8);
             switch (index) {
                 case 0x03: { // Device Name
                     this.toybotInfo.name = '';
                     for (let i = 10; i < 21; i++) {
-                        this.toybotInfo.name += String.fromCharCode(data[i + count]);
+                        this.toybotInfo.name += String.fromCharCode(data[i + addr]);
                     }
                 } break;
                 case 0x13: { // Control Each
-                    const repeat = data[9 + count] * 4;
+                    const repeat = data[9 + addr] * 4;
                     for (let i = 0; i < repeat; i += 4) {
-                        const id = data[10 + i + count];
-                        const position = data[12 + i + count] | (data[13 + i + count] << 8);
+                        const id = data[10 + i + addr];
+                        const position = data[12 + i + addr] | (data[13 + i + addr] << 8);
                         this.toybotInfo.servo[id] = position;
                     }
                 } break;
                 case 0x1E: { // Calibration
-                    const repeat = data[9 + count] * 3;
+                    const repeat = data[9 + addr] * 3;
                     for (let i = 0; i < repeat; i += 3) {
-                        const id = data[10 + i + count];
-                        const offset = data[11 + i + count] | (data[12 + i + count] << 8);
+                        const id = data[10 + i + addr];
+                        const offset = data[11 + i + addr] | (data[12 + i + addr] << 8);
                         this.toybotInfo.servoOffset[id] = offset >= 32768 ? offset - 65536 : offset;
                     }
                 } break;
                 case 0x43: { // Analog Value
-                    this.toybotInfo.analog = data[9 + count] | (data[10 + count] << 8);
+                    this.toybotInfo.analog = data[9 + addr] | (data[10 + addr] << 8);
                 } break;
                 case 0x53: { // Button Control
-                    this.toybotInfo.button[0] = data[9 + count];
-                    this.toybotInfo.button[1] = data[10 + count];
+                    this.toybotInfo.button[0] = data[9 + addr];
+                    this.toybotInfo.button[1] = data[10 + addr];
                 } break;
                 case 0x73: { // Ultrasonic Distance
-                    this.toybotInfo.distance = data[9 + count] | (data[10 + count] << 8);
+                    this.toybotInfo.distance = data[9 + addr] | (data[10 + addr] << 8);
                 } break;
             }
-            count += 3 + size;
-            if (count >= length) {
+            addr += ContentHeaderSize + cLength;
+            if (addr >= length) {
                 break;
             }
         }
@@ -343,128 +353,168 @@ class toybotSR {
         console.log(msg);
     }
 
-    addReturn(data) {
-        const length = data.length * 2 + 1;
-        const buffer = new Uint8Array(3 + length);
-        buffer[0] = 0x01;
-        buffer[1] = length & 0xFF;
-        buffer[2] = (length >> 8) & 0xFF;
-        buffer[3] = data.length;
-        for (let i = 0; i < data.length; i++) {
-            const addr = i * 2;
-            buffer[addr + 4] = data[i].index;
-            buffer[addr + 5] = data[i].repeat;
+    generatePacket() {
+        const cCount = this.contents.count;
+        const packet = new Uint8Array(PacketHeaderSize + cCount);        
+        packet[0] = PacketVerificationValue;
+        packet[1] = PacketVerificationValue;
+        packet[2] = ProtocolType;
+        packet[3] = ProtocolVerison;
+        packet[4] = cCount & 0xFF;
+        packet[5] = (cCount >> 8) & 0xFF;
+        for (let i = 0; i < cCount; i++) {
+            packet[1] ^= this.contents.buffer[i];
+            packet[PacketHeaderSize + i] = this.contents.buffer[i];
         }
-        this.cBuffer.push(...buffer);
+        for (let i = 1; i < PacketHeaderSize; i++) {
+            packet[0] ^= packet[i];
+        }
+        this.contents.count = 0;
+        return packet;
     }
 
-    addDeviceMode(mode) {
-        const buffer = new Uint8Array(4);
+    pushContents(data) {
+        const dLength = data.length;
+        const cCount = this.contents.count;
+        for (let i = 0; i < dLength; i++) {
+            this.contents.buffer[i + cCount] = data[i];
+        }
+        this.contents.count += dLength;
+    }
+
+    addReturn(callData) {
+        const dLength = callData.length;
+        const cLength = dLength * 2 + 1;
+        const buffer = new Uint8Array(ContentHeaderSize + cLength);
+        buffer[0] = 0x01;
+        buffer[1] = cLength & 0xFF;
+        buffer[2] = (cLength >> 8) & 0xFF;
+        buffer[3] = dLength;
+        for (let i = 0; i < dLength; i++) {
+            const addr = i * 2;
+            buffer[addr + 4] = callData[i].index;
+            buffer[addr + 5] = callData[i].repeat;
+        }
+        this.pushContents(buffer);
+    }
+
+    addDeviceMode(mode) {        
+        const cLength = 1;
+        const buffer = new Uint8Array(ContentHeaderSize + cLength);
         buffer[0] = 0x02;
-        buffer[1] = 0x01;
-        buffer[2] = 0x00;
+        buffer[1] = cLength & 0xFF;
+        buffer[2] = (cLength >> 8) & 0xFF;
         buffer[3] = mode;
-        this.cBuffer.push(...buffer);
+        this.pushContents(buffer);
     }
 
     addLedControl(rgb) {
-        const buffer = new Uint8Array(6);
+        const cLength = 3;
+        const buffer = new Uint8Array(ContentHeaderSize + cLength);
         buffer[0] = 0x63;
-        buffer[1] = 0x03;
-        buffer[2] = 0x00;
+        buffer[1] = cLength & 0xFF;
+        buffer[2] = (cLength >> 8) & 0xFF;
         buffer[3] = rgb.r;
         buffer[4] = rgb.g;
         buffer[5] = rgb.b;
-        this.cBuffer.push(...buffer);
+        this.pushContents(buffer);
     }
 
     addMelodyPlayScore(note) {
-        const buffer = new Uint8Array(6);
+        const dLength = 1;
+        const cLength = dLength * 2 + 1;
+        const buffer = new Uint8Array(ContentHeaderSize + cLength);
         buffer[0] = 0x83;
-        buffer[1] = 0x03;
-        buffer[2] = 0x00;
-        buffer[3] = 0x01;
+        buffer[1] = cLength & 0xFF;
+        buffer[2] = (cLength >> 8) & 0xFF;
+        buffer[3] = dLength;
         buffer[4] = note.beat;
         buffer[5] = note.pitch;
-        this.cBuffer.push(...buffer);
+        this.pushContents(buffer);
     }
 
     addMelodyPlayList(list) {
-        const buffer = new Uint8Array(5);
+        const cLength = 2;
+        const buffer = new Uint8Array(ContentHeaderSize + cLength);
         buffer[0] = 0x87;
-        buffer[1] = 0x02;
-        buffer[2] = 0x00;
+        buffer[1] = cLength & 0xFF;
+        buffer[2] = (cLength >> 8) & 0xFF;
         buffer[3] = list.title;
         buffer[4] = list.play;
-        this.cBuffer.push(...buffer);
+        this.pushContents(buffer);
     }
 
     addServoControl(servo) {
-        const length = servo.length * 4 + 1;
-        const buffer = new Uint8Array(3 + length);
+        const dLength = servo.length;
+        const cLength = dLength * 4 + 1;
+        const buffer = new Uint8Array(ContentHeaderSize + cLength);
         buffer[0] = 0x13;
-        buffer[1] = length & 0xFF;
-        buffer[2] = (length >> 8) & 0xFF;
-        buffer[3] = servo.length;
-        for (let i = 0; i < servo.length; i++) {
+        buffer[1] = cLength & 0xFF;
+        buffer[2] = (cLength >> 8) & 0xFF;
+        buffer[3] = dLength;
+        for (let i = 0; i < dLength; i++) {
             const addr = i * 4;
             buffer[addr + 4] = servo[i].id;
             buffer[addr + 5] = servo[i].speed;
             buffer[addr + 6] = servo[i].position & 0xFF;
             buffer[addr + 7] = (servo[i].position >> 8) & 0xFF;
         }
-        this.cBuffer.push(...buffer);
+        this.pushContents(buffer);
     }
 
     addPwmControl(pwm) {
-        const buffer = new Uint8Array(5);
+        const cLength = 2;
+        const buffer = new Uint8Array(ContentHeaderSize + cLength);
         buffer[0] = 0x33;
-        buffer[1] = 0x02;
-        buffer[2] = 0x00;
+        buffer[1] = cLength & 0xFF;
+        buffer[2] = (cLength >> 8) & 0xFF;
         buffer[3] = pwm & 0xFF;
         buffer[4] = (pwm >> 8) & 0xFF;
-        this.cBuffer.push(...buffer);
+        this.pushContents(buffer);
     }
 
     addDcControl(dc) {
-        const length = dc.length * 3 + 1;
-        const buffer = new Uint8Array(3 + length);
+        const dLength = dc.length;
+        const cLength = dLength * 3 + 1;
+        const buffer = new Uint8Array(ContentHeaderSize + cLength);
         buffer[0] = 0x23;
-        buffer[1] = length & 0xFF;
-        buffer[2] = (length >> 8) & 0xFF;
-        buffer[3] = dc.length;
-        for (let i = 0; i < dc.length; i++) {
+        buffer[1] = cLength & 0xFF;
+        buffer[2] = (cLength >> 8) & 0xFF;
+        buffer[3] = dLength;
+        for (let i = 0; i < dLength; i++) {
             const addr = i * 3;
             buffer[addr + 4] = dc[i].id;
             buffer[addr + 5] = dc[i].speed & 0xFF;
             buffer[addr + 6] = (dc[i].speed >> 8) & 0xFF;
         }
-        this.cBuffer.push(...buffer);
+        this.pushContents(buffer);
     }
     
     addServoOffset(servoOffset) {
-        const length = servoOffset.length * 3 + 1;
-        const buffer = new Uint8Array(3 + length);
+        const dLength = servoOffset.length;
+        const cLength = dLength * 3 + 1;
+        const buffer = new Uint8Array(ContentHeaderSize + cLength);
         buffer[0] = 0x1E;
-        buffer[1] = length & 0xFF;
-        buffer[2] = (length >> 8) & 0xFF;
-        buffer[3] = servoOffset.length;
-        for (let i = 0; i < servoOffset.length; i++) {
+        buffer[1] = cLength & 0xFF;
+        buffer[2] = (cLength >> 8) & 0xFF;
+        buffer[3] = dLength;
+        for (let i = 0; i < dLength; i++) {
             const addr = i * 3;
             buffer[addr + 4] = servoOffset[i].id;
             buffer[addr + 5] = servoOffset[i].offset & 0xFF;
             buffer[addr + 6] = (servoOffset[i].offset >> 8) & 0xFF;
         }
-        this.cBuffer.push(...buffer);
+        this.pushContents(buffer);
     }
 
-    addHeartBeat() {
-        const buffer = new Uint8Array(4);
+    addHeartBeat(type) {
+        const cLength = 1;
+        const buffer = new Uint8Array(ContentHeaderSize + cLength);
         buffer[0] = 0xFF;
-        buffer[1] = 0x01;
-        buffer[2] = 0x00;
-        buffer[3] = 0x01;
-        this.cBuffer.push(...buffer);
+        buffer[1] = cLength & 0xFF;
+        buffer[2] = (cLength >> 8) & 0xFF;
+        buffer[3] = type;
+        this.pushContents(buffer);
     }
 }
 
@@ -928,13 +978,16 @@ class Scratch3toybotSR {
 
     returnDelay(us) {
         return new Promise(resolve => {
-            setTimeout(() => { resolve(); }, us); 
+            setTimeout(
+                () => { resolve(); },
+                us
+            ); 
         });
     }
 
     get_ultrasonic_distance() {
         const mm = this._peripheral.toybotInfo.distance;
-        return cm / 10;
+        return mm / 10;
     }
 
     get_button_state(args) {
