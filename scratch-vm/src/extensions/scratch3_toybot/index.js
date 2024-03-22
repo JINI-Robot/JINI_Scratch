@@ -1,49 +1,130 @@
 // Boiler plate from the Scratch Team
 const ArgumentType = require('../../extension-support/argument-type');
 const BlockType = require('../../extension-support/block-type');
-const Cast = require('../../util/cast');
-const formatMessage = require('format-message');
-const uid = require('../../util/uid');
 const SR = require('../../io/serial');
 const Base64Util = require('../../util/base64-util');
-const MathUtil = require('../../util/math-util');
 const RateLimiter = require('../../util/rateLimiter.js');
+const formatMessage = require('format-message');
+
+const _DEBUG_BLOCK = false;
+const _DEBUG_PACKET = false;
 
 // The following are constants used within the extension
 // Protocol
 const ProtocolType = 0x03;    // toybot product number
 const ProtocolVerison = 0x22; // protocal 2.2
 // Content Index
-const DeviceName = 0x03;
-const ServoControlEach = 0x13;
-const ServoControlCalibration = 0x1E;
-const AnalogValue = 0x43;
-const ButtonControl = 0x53;
-const UltrasonicDistance = 0x73;
+const DeviceReturn = {
+    multiple: true,
+    index: 0x01,
+    size: 0x02,
+    count: 0x00,
+    repeat_once: 0x02,
+};
+const DeviceMode = {
+    multiple: false,
+    index: 0x02,
+    size: 0x01,
+    count: 0x00,
+    mode_control: 0x03,
+};
+const DeviceName = {
+    multiple: true,
+    index: 0x03,
+    size: 0x0A,
+    count: 0x00
+};
+const ServoControlEach = {
+    multiple: true,
+    index: 0x13,
+    size: 0x04,
+    count: 0x00
+};
+
+const ServoControlCalibration = {
+    multiple: true,
+    index: 0x1E,
+    size: 0x03,
+    count: 0x00
+}
+const DcControl = {
+    multiple: true,
+    index: 0x23,
+    size: 0x03,
+    count: 0x00
+}
+const PwmControl = {
+    multiple: false,
+    index: 0x33,
+    size: 0x02,
+    count: 0x00
+}
+const AnalogValue = {
+    multiple: false,
+    index: 0x43,
+    size: 0x02,
+    count: 0x00
+}
+const ButtonControl = {
+    multiple: false,
+    index: 0x53,
+    size: 0x02,
+    count: 0x00
+}
+const LedControl = {
+    multiple: false,
+    index: 0x63,
+    size: 0x03,
+    count: 0x00
+}
+const UltrasonicDistance = {
+    multiple: false,
+    index: 0x73,
+    size: 0x02,
+    count: 0x00
+}
+const MelodyPlayScore = {
+    multiple: true,
+    index: 0x83,
+    size: 0x02,
+    count: 0x00
+}
+const MelodyPlayList = {
+    multiple: false,
+    index: 0x87,
+    size: 0x02,
+    count: 0x00
+}
+const SignalHeartBeat = {
+    multiple: false,
+    index: 0xFF,
+    size: 0x01,
+    count: 0x00,
+    type_serial: 0x01
+};
 // Content value
-const DeviceReturn_Repeat = 0x02;
-const DeviceMode_Control = 0x03;
 const HeartBeat_Serial = 0x01;
 const RequestReadDatas = [
-    {index: ServoControlEach,        repeat: DeviceReturn_Repeat},
-    {index: ServoControlCalibration, repeat: DeviceReturn_Repeat},
-    {index: AnalogValue,             repeat: DeviceReturn_Repeat},
-    {index: ButtonControl,           repeat: DeviceReturn_Repeat},
-    {index: UltrasonicDistance,      repeat: DeviceReturn_Repeat}
+    {index: ServoControlEach.index,        repeat: DeviceReturn.repeat_once},
+    {index: ServoControlCalibration.index, repeat: DeviceReturn.repeat_once},
+    {index: AnalogValue.index,             repeat: DeviceReturn.repeat_once},
+    {index: ButtonControl.index,           repeat: DeviceReturn.repeat_once},
+    {index: UltrasonicDistance.index,      repeat: DeviceReturn.repeat_once}
 ];
 const RequestReadName = [
-    {index: DeviceName, repeat: DeviceReturn_Repeat}
+    {index: DeviceName.index, repeat: DeviceReturn.repeat_once}
 ]
 
 const PacketBufferSize = 256;
 const PacketHeaderSize = 6;
 const ContentHeaderSize = 3;
+const ContentAddCountData = 1;
 const PacketVerificationValue = 0xAA;
 
 /**
  * units: ms
  */
-const DefaultBlockReturnDelay = 1;
+const DefaultBlockReturnDelay = 10;
 /**
  * uints: ms
  */
@@ -299,33 +380,34 @@ class toybotSR {
      */
     handleInitSendData() {
         this.addReturn(RequestReadName);
-        this.addDeviceMode(DeviceMode_Control);
-        this.addHeartBeat(HeartBeat_Serial);
-        return this.generatePacket();
+        this.addDeviceMode(DeviceMode.mode_control);
+        this.addHeartBeat(HeartBeat_Serial.type_serial);
+        const packet = this.generatePacket();
+        if (_DEBUG_PACKET) this.printPacket('SEND', packet);
+        return packet;
     }
 
     /**
      * ToyBot 감지 후 PacketSendInterval에 설정된 값에 따라 주기적으로 송신할 데이터
      */
     handleIntervalSendData() {
-        // if (this._toybotInfo.mode != DeviceMode_Control) {
-        //     this.addDeviceMode(DeviceMode_Control);
-        // }
         this.addReturn(RequestReadDatas);
-        this.addHeartBeat(HeartBeat_Serial);
-        return this.generatePacket();
+        this.addHeartBeat(HeartBeat_Serial.type_serial);
+        const packet = this.generatePacket();
+        if (_DEBUG_PACKET) this.printPacket('SEND', packet);
+        return packet;
     }
 
     /**
      * 수신 데이터 검증
      */
-    validateReceivedData(data) {
+    validateReceivedData(header) {
         let verification = false;
         let checker = PacketVerificationValue;
         for (let i = 1; i < PacketHeaderSize; i++) {
-            checker ^= data[i];
+            checker ^= header[i];
         }
-        if (checker === data[0]) {
+        if (checker === header[0]) {
             this._toybotDetection = true;
             verification = true;
         }
@@ -336,22 +418,23 @@ class toybotSR {
      * 수신 데이터 검증 통과 후 패킷 1개 처리
      */
     handleReceivedData(data) {
+        if (_DEBUG_PACKET) this.printPacket('RECEIVED', data);
         const length = data[4] | (data[5] << 8);
         let addr = 0;
         while(addr < length) {
             const index = data[6 + addr];
             const cLength = data[7 + addr] | (data[8 + addr] << 8);
             switch (index) {
-                case 0x02: { // Device Mode
+                case DeviceMode.index: {
                     this._toybotInfo.mode = data[9 + addr];
                 } break;
-                case 0x03: { // Device Name
+                case DeviceName.index: {
                     const repeat = data[9 + addr];
                     for (let i = 0; i < repeat; i++) {
                         this._toybotInfo.name += String.fromCharCode(data[10 + i + addr]);
                     }
                 } break;
-                case 0x13: { // Control Each
+                case ServoControlEach.index: {
                     const repeat = data[9 + addr] * 4;
                     for (let i = 0; i < repeat; i += 4) {
                         const id = data[10 + i + addr];
@@ -360,7 +443,7 @@ class toybotSR {
                         this._toybotInfo.servo[id] = position;
                     }
                 } break;
-                case 0x1E: { // Calibration
+                case ServoControlCalibration.index: {
                     const repeat = data[9 + addr] * 3;
                     for (let i = 0; i < repeat; i += 3) {
                         const id = data[10 + i + addr];
@@ -368,14 +451,14 @@ class toybotSR {
                         this._toybotInfo.servoOffset[id] = offset >= 32768 ? offset - 65536 : offset;
                     }
                 } break;
-                case 0x43: { // Analog Value
+                case AnalogValue.index: {
                     this._toybotInfo.analog = data[9 + addr] | (data[10 + addr] << 8);
                 } break;
-                case 0x53: { // Button Control
+                case ButtonControl.index: {
                     this._toybotInfo.button[0] = data[9 + addr];
                     this._toybotInfo.button[1] = data[10 + addr];
                 } break;
-                case 0x73: { // Ultrasonic Distance
+                case UltrasonicDistance.index: {
                     this._toybotInfo.distance = data[9 + addr] | (data[10 + addr] << 8);
                 } break;
             }
@@ -383,11 +466,12 @@ class toybotSR {
         }
     }
 
-    printPacket(packet) {
+    printPacket(title, packet) {
         let msg = packet.length.toString() + ': ';
         for (let i = 0; i < packet.length; i++) {
             msg += '0x' + packet[i].toString(16) + ', ';
         }
+        console.log('=========== ' + title + ' =============');
         console.log(msg);
     }
 
@@ -411,148 +495,160 @@ class toybotSR {
         return packet;
     }
 
-    pushContents(data) {
-        const dLength = data.length;
-        const cLength = this._contents.length;
-        for (let i = 0; i < dLength; i++) {
-            this._contents.buffer[i + cLength] = data[i];
+    addContents(content, data) {
+        const cLength = content.count * content.size + (content.multiple ? 1 : 0);
+        data[0] = content.index;
+        data[1] = cLength & 0xFF;
+        data[2] = (cLength >> 8) & 0xFF;
+        data[3] = content.multiple ? content.count : data[3];
+        for (let i = 0; i < data.length; i++) {
+            this._contents.buffer[i + this._contents.length] = data[i];
         }
-        this._contents.length += dLength;
+        this._contents.length += data.length;
     }
 
     addReturn(callData) {
-        const dLength = callData.length;
-        const cLength = dLength * 2 + 1;
-        const buffer = new Uint8Array(ContentHeaderSize + cLength);
-        buffer[0] = 0x01;
-        buffer[1] = cLength & 0xFF;
-        buffer[2] = (cLength >> 8) & 0xFF;
-        buffer[3] = dLength;
-        for (let i = 0; i < dLength; i++) {
-            const addr = i * 2;
-            buffer[addr + 4] = callData[i].index;
-            buffer[addr + 5] = callData[i].repeat;
+        const content = Object.assign({}, DeviceReturn);
+        let buffer = [0, 0, 0, 0];
+        for (let i = 0; i < callData.length; i++) {
+            if (!Number.isNaN(callData[i].index) && !Number.isNaN(callData[i].repeat)) {
+                buffer.push(callData[i].index);
+                buffer.push(callData[i].repeat);
+                content.count++;
+            }
         }
-        this.pushContents(buffer);
+        if (content.count > 0) {
+            this.addContents(content, buffer);
+        }
     }
 
-    addDeviceMode(mode) {        
-        const cLength = 1;
-        const buffer = new Uint8Array(ContentHeaderSize + cLength);
-        buffer[0] = 0x02;
-        buffer[1] = cLength & 0xFF;
-        buffer[2] = (cLength >> 8) & 0xFF;
-        buffer[3] = mode;
-        this.pushContents(buffer);
+    addDeviceMode(mode) {
+        const content = Object.assign({}, DeviceMode);
+        let buffer = [0, 0, 0];
+        if (!Number.isNaN(mode)) {
+            buffer.push(mode);
+            content.count++;
+        }
+        if (content.count > 0) {
+            this.addContents(content, buffer);
+        }
     }
 
     addLedControl(rgb) {
-        const cLength = 3;
-        const buffer = new Uint8Array(ContentHeaderSize + cLength);
-        buffer[0] = 0x63;
-        buffer[1] = cLength & 0xFF;
-        buffer[2] = (cLength >> 8) & 0xFF;
-        buffer[3] = rgb.r;
-        buffer[4] = rgb.g;
-        buffer[5] = rgb.b;
-        this.pushContents(buffer);
+        const content = Object.assign({}, LedControl);
+        let buffer = [0, 0, 0];
+        if (!Number.isNaN(rgb.r) && !Number.isNaN(rgb.g) && !Number.isNaN(rgb.b)) {
+            buffer.push(rgb.r);
+            buffer.push(rgb.g);
+            buffer.push(rgb.b);
+            content.count++;
+        }
+        if (content.count > 0) {
+            this.addContents(content, buffer);
+        }
     }
 
     addMelodyPlayScore(note) {
-        const dLength = 1;
-        const cLength = dLength * 2 + 1;
-        const buffer = new Uint8Array(ContentHeaderSize + cLength);
-        buffer[0] = 0x83;
-        buffer[1] = cLength & 0xFF;
-        buffer[2] = (cLength >> 8) & 0xFF;
-        buffer[3] = dLength;
-        buffer[4] = note.beat;
-        buffer[5] = note.pitch;
-        this.pushContents(buffer);
+        const content = Object.assign({}, MelodyPlayScore);
+        let buffer = [0, 0, 0, 0];
+        for (let i = 0; i < note.length; i++) {
+            if (!Number.isNaN(note[i].beat) && !Number.isNaN(note[i].pitch)) {
+                buffer.push(note[i].beat);
+                buffer.push(note[i].pitch);
+                content.count++;
+            }
+        }
+        if (content.count > 0) {
+            this.addContents(content, buffer);
+        }
     }
 
-    addMelodyPlayList(list) {
-        const cLength = 2;
-        const buffer = new Uint8Array(ContentHeaderSize + cLength);
-        buffer[0] = 0x87;
-        buffer[1] = cLength & 0xFF;
-        buffer[2] = (cLength >> 8) & 0xFF;
-        buffer[3] = list.title;
-        buffer[4] = list.play;
-        this.pushContents(buffer);
+    addMelodyPlayList(melody) {
+        const content = Object.assign({}, MelodyPlayList);
+        let buffer = [0, 0, 0];
+        if (!Number.isNaN(melody.title) && !Number.isNaN(melody.play)) {
+            buffer.push(melody.title);
+            buffer.push(melody.play);
+            content.count++;
+        }
+        if (content.count > 0) {
+            this.addContents(content, buffer);
+        }
     }
 
     addServoControl(servo) {
-        const dLength = servo.length;
-        const cLength = dLength * 4 + 1;
-        const buffer = new Uint8Array(ContentHeaderSize + cLength);
-        buffer[0] = 0x13;
-        buffer[1] = cLength & 0xFF;
-        buffer[2] = (cLength >> 8) & 0xFF;
-        buffer[3] = dLength;
-        for (let i = 0; i < dLength; i++) {
-            const addr = i * 4;
-            buffer[addr + 4] = servo[i].id;
-            buffer[addr + 5] = servo[i].speed;
-            buffer[addr + 6] = servo[i].position & 0xFF;
-            buffer[addr + 7] = (servo[i].position >> 8) & 0xFF;
+        const content = Object.assign({}, ServoControlEach);
+        let buffer = [0, 0, 0, 0];
+        for (let i = 0; i < servo.length; i++) {
+            if (!Number.isNaN(servo[i].id) && !Number.isNaN(servo[i].speed) && !Number.isNaN(servo[i].position)) {
+                buffer.push(servo[i].id);
+                buffer.push(servo[i].speed);
+                buffer.push(servo[i].position & 0xFF);
+                buffer.push((servo[i].position >> 8) & 0xFF);
+                content.count++;
+            }
         }
-        this.pushContents(buffer);
+        if (content.count > 0) {
+            this.addContents(content, buffer);
+        }
     }
 
     addPwmControl(pwm) {
-        const cLength = 2;
-        const buffer = new Uint8Array(ContentHeaderSize + cLength);
-        buffer[0] = 0x33;
-        buffer[1] = cLength & 0xFF;
-        buffer[2] = (cLength >> 8) & 0xFF;
-        buffer[3] = pwm & 0xFF;
-        buffer[4] = (pwm >> 8) & 0xFF;
-        this.pushContents(buffer);
+        const content = Object.assign({}, PwmControl);
+        let buffer = [0, 0, 0];
+        if (!Number.isNaN(pwm)) {
+            buffer.push(pwm & 0xFF);
+            buffer.push((pwm >> 8) & 0xFF);
+            content.count++;
+        }
+        if (content.count > 0) {
+            this.addContents(content, buffer);
+        }
     }
 
     addDcControl(dc) {
-        const dLength = dc.length;
-        const cLength = dLength * 3 + 1;
-        const buffer = new Uint8Array(ContentHeaderSize + cLength);
-        buffer[0] = 0x23;
-        buffer[1] = cLength & 0xFF;
-        buffer[2] = (cLength >> 8) & 0xFF;
-        buffer[3] = dLength;
-        for (let i = 0; i < dLength; i++) {
-            const addr = i * 3;
-            buffer[addr + 4] = dc[i].id;
-            buffer[addr + 5] = dc[i].speed & 0xFF;
-            buffer[addr + 6] = (dc[i].speed >> 8) & 0xFF;
+        const content = Object.assign({}, DcControl);
+        let buffer = [0, 0, 0, 0];
+        for (let i = 0; i < dc.length; i++) {
+            if (!Number.isNaN(dc[i].id) && !Number.isNaN(dc[i].speed)) {
+                buffer.push(dc[i].id);
+                buffer.push(dc[i].speed & 0xFF);
+                buffer.push((dc[i].speed >> 8) & 0xFF);
+                content.count++;
+            }
         }
-        this.pushContents(buffer);
+        if (content.count > 0) {
+            console.log(buffer);
+            this.addContents(content, buffer);
+        }
     }
     
     addServoOffset(servoOffset) {
-        const dLength = servoOffset.length;
-        const cLength = dLength * 3 + 1;
-        const buffer = new Uint8Array(ContentHeaderSize + cLength);
-        buffer[0] = 0x1E;
-        buffer[1] = cLength & 0xFF;
-        buffer[2] = (cLength >> 8) & 0xFF;
-        buffer[3] = dLength;
-        for (let i = 0; i < dLength; i++) {
-            const addr = i * 3;
-            buffer[addr + 4] = servoOffset[i].id;
-            buffer[addr + 5] = servoOffset[i].offset & 0xFF;
-            buffer[addr + 6] = (servoOffset[i].offset >> 8) & 0xFF;
+        const content = Object.assign({}, ServoControlCalibration);
+        let buffer = [0, 0, 0, 0];
+        for (let i = 0; i < servoOffset.length; i++) {
+            if (!Number.isNaN(servoOffset[i].id) && !Number.isNaN(servoOffset[i].servoOffset)) {
+                buffer.push(servoOffset[i].id);
+                buffer.push(servoOffset[i].offset & 0xFF);
+                buffer.push((servoOffset[i].offset >> 8) & 0xFF);
+                content.count++;
+            }
         }
-        this.pushContents(buffer);
+        if (content.count > 0) {
+            this.addContents(content, buffer);
+        }
     }
 
     addHeartBeat(type) {
-        const cLength = 1;
-        const buffer = new Uint8Array(ContentHeaderSize + cLength);
-        buffer[0] = 0xFF;
-        buffer[1] = cLength & 0xFF;
-        buffer[2] = (cLength >> 8) & 0xFF;
-        buffer[3] = type;
-        this.pushContents(buffer);
+        const content = Object.assign({}, SignalHeartBeat);
+        let buffer = [0, 0, 0];
+        if (!Number.isNaN(type)) {
+            buffer.push(type);
+            content.count++;
+        }
+        if (content.count > 0 ) {
+            this.addContents(content, buffer);
+        }
     }
 }
 
@@ -598,8 +694,8 @@ class Scratch3toybotSR {
                     }),
                     arguments: {                        
                         BUTTON: {
-                            type: ArgumentType.NUMBER,
-                            defaultValue: 0,
+                            type: ArgumentType.STRING,
+                            defaultValue: '1',
                             menu: 'dropdown_button'
                         }
                     }
@@ -625,8 +721,8 @@ class Scratch3toybotSR {
                     }),
                     arguments: {
                         SERVO: {
-                            type: ArgumentType.NUMBER,
-                            defaultValue: 0,
+                            type: ArgumentType.STRING,
+                            defaultValue: '0',
                             menu: 'dropdown_servo'
                         },
                     }
@@ -642,8 +738,8 @@ class Scratch3toybotSR {
                     }),
                     arguments: {
                         COLOR: {
-                            type: ArgumentType.NUMBER,
-                            defaultValue: 5,
+                            type: ArgumentType.STRING,
+                            defaultValue: '5',
                             menu: 'dropdown_color'
                         }
                     }
@@ -658,16 +754,16 @@ class Scratch3toybotSR {
                     }),
                     arguments: {
                         RED: {
-                            type: ArgumentType.NUMBER,
-                            defaultValue: 100
+                            type: ArgumentType.STRING,
+                            defaultValue: '100'
                         },
                         GREEN: {
-                            type: ArgumentType.NUMBER,
-                            defaultValue: 100
+                            type: ArgumentType.STRING,
+                            defaultValue: '100'
                         },
                         BLUE: {
-                            type: ArgumentType.NUMBER,
-                            defaultValue: 100
+                            type: ArgumentType.STRING,
+                            defaultValue: '100'
                         }
                     }
                 },
@@ -681,23 +777,23 @@ class Scratch3toybotSR {
                     }),
                     arguments: {
                         OCTAVE: {
-                            type: ArgumentType.NUMBER,
-                            defaultValue: 80,
+                            type: ArgumentType.STRING,
+                            defaultValue: '2',
                             menu: 'dropdown_octave'
                         },
                         PITCH: {
-                            type: ArgumentType.NUMBER,
-                            defaultValue: 1,
+                            type: ArgumentType.STRING,
+                            defaultValue: '1',
                             menu: 'dropdown_pitch'
                         },
                         ACCIDENTAL: {
-                            type: ArgumentType.NUMBER,
-                            defaultValue: 0,
+                            type: ArgumentType.STRING,
+                            defaultValue: '1',
                             menu: 'dropdown_accidental'
                         },
                         BEAT: {
-                            type: ArgumentType.NUMBER,
-                            defaultValue: 500,
+                            type: ArgumentType.STRING,
+                            defaultValue: '4',
                             menu: 'dropdown_beat'
                         }
                     }
@@ -712,8 +808,8 @@ class Scratch3toybotSR {
                     }),
                     arguments: {
                         EFFECT: {
-                            type: ArgumentType.NUMBER,
-                            defaultValue: 1,
+                            type: ArgumentType.STRING,
+                            defaultValue: '1',
                             menu: 'dropdown_effect'
                         }
                     }
@@ -728,8 +824,8 @@ class Scratch3toybotSR {
                     }),
                     arguments: {
                         MELODY: {
-                            type: ArgumentType.NUMBER,
-                            defaultValue: 13,
+                            type: ArgumentType.STRING,
+                            defaultValue: '1',
                             menu: 'dropdown_melody'
                         }
                     }
@@ -744,18 +840,18 @@ class Scratch3toybotSR {
                     }),
                     arguments: {
                         SERVO: {
-                            type: ArgumentType.NUMBER,
-                            defaultValue: 0,
+                            type: ArgumentType.STRING,
+                            defaultValue: '0',
                             menu: 'dropdown_servo'
                         },
                         SPEED: {
-                            type: ArgumentType.NUMBER,
-                            defaultValue: 3,
+                            type: ArgumentType.STRING,
+                            defaultValue: '3',
                             menu: 'dropdown_speed'
                         },
                         ANGLE: {
-                            type: ArgumentType.NUMBER,
-                            defaultValue: 90
+                            type: ArgumentType.STRING,
+                            defaultValue: '90'
                         }
                     }
                 },
@@ -769,29 +865,29 @@ class Scratch3toybotSR {
                     }),
                     arguments: {
                         SPEED: {
-                            type: ArgumentType.NUMBER,
-                            defaultValue: 3,
+                            type: ArgumentType.STRING,
+                            defaultValue: '3',
                             menu: 'dropdown_speed'
                         },
                         ANGLE_0: {
-                            type: ArgumentType.NUMBER,
-                            defaultValue: 90
+                            type: ArgumentType.STRING,
+                            defaultValue: '90'
                         },
                         ANGLE_1: {
-                            type: ArgumentType.NUMBER,
-                            defaultValue: 90
+                            type: ArgumentType.STRING,
+                            defaultValue: '90'
                         },
                         ANGLE_2: {
-                            type: ArgumentType.NUMBER,
-                            defaultValue: 90
+                            type: ArgumentType.STRING,
+                            defaultValue: '90'
                         },
                         ANGLE_3: {
-                            type: ArgumentType.NUMBER,
-                            defaultValue: 90
+                            type: ArgumentType.STRING,
+                            defaultValue: '90'
                         },
                         ANGLE_4: {
-                            type: ArgumentType.NUMBER,
-                            defaultValue: 90
+                            type: ArgumentType.STRING,
+                            defaultValue: '90'
                         },
                     }
                 },
@@ -805,8 +901,8 @@ class Scratch3toybotSR {
                     }),
                     arguments: {
                         SPEED: {
-                            type: ArgumentType.NUMBER,
-                            defaultValue: 3,
+                            type: ArgumentType.STRING,
+                            defaultValue: '3',
                             menu: 'dropdown_speed'
                         },
                     }
@@ -821,8 +917,8 @@ class Scratch3toybotSR {
                     }),
                     arguments: {
                         PWM: {
-                            type: ArgumentType.NUMBER,
-                            defaultValue: 70,
+                            type: ArgumentType.STRING,
+                            defaultValue: '70',
                         },
                     }
                 },
@@ -836,18 +932,18 @@ class Scratch3toybotSR {
                     }),
                     arguments: {
                         DC: {
-                            type: ArgumentType.NUMBER,
-                            defaultValue: 0,
+                            type: ArgumentType.STRING,
+                            defaultValue: '1',
                             menu: 'dropdown_dc'
                         },
                         SPEED: {
-                            type: ArgumentType.NUMBER,
-                            defaultValue: 3,
+                            type: ArgumentType.STRING,
+                            defaultValue: '3',
                             menu: 'dropdown_speed'
                         },
                         DIRECTION: {
-                            type: ArgumentType.NUMBER,
-                            defaultValue: 1,
+                            type: ArgumentType.STRING,
+                            defaultValue: '1',
                             menu: 'dropdown_direction'
                         }
                     }
@@ -862,8 +958,8 @@ class Scratch3toybotSR {
                     }),
                     arguments: {
                         SERVO: {
-                            type: ArgumentType.NUMBER,
-                            defaultValue: 0,
+                            type: ArgumentType.STRING,
+                            defaultValue: '0',
                             menu: 'dropdown_servo_all'
                         }
                     }
@@ -884,134 +980,144 @@ class Scratch3toybotSR {
                 dropdown_button: {
                     acceptReporters: true,
                     items: [
-                        {text: formatMessage({id: 'toybot.list_button_a', default: 'A'}), value: 0},
-                        {text: formatMessage({id: 'toybot.list_button_b', default: 'B'}), value: 1}
+                        {text: formatMessage({id: 'toybot.list_button_a', default: 'A'}), value: '1'},
+                        {text: formatMessage({id: 'toybot.list_button_b', default: 'B'}), value: '2'}
                     ]
                 },
                 dropdown_color: {
                     acceptReporters: true,
                     items: [
-                        {text: formatMessage({id: 'toybot.list_color_white',  default: 'White'}),  value: 1},
-                        {text: formatMessage({id: 'toybot.list_color_red',    default: 'Red'}),    value: 2},
-                        {text: formatMessage({id: 'toybot.list_color_orange', default: 'Orange'}), value: 3},
-                        {text: formatMessage({id: 'toybot.list_color_yellow', default: 'Yellow'}), value: 4},
-                        {text: formatMessage({id: 'toybot.list_color_green',  default: 'Green'}),  value: 5},
-                        {text: formatMessage({id: 'toybot.list_color_blue',   default: 'Blue'}),   value: 6},
-                        {text: formatMessage({id: 'toybot.list_color_navy',   default: 'Navy'}),   value: 7},
-                        {text: formatMessage({id: 'toybot.list_color_violet', default: 'Violet'}), value: 8},
-                        {text: formatMessage({id: 'toybot.list_color_off',    default: 'Off'}),    value: 0}
+                        {text: formatMessage({id: 'toybot.list_color_white',  default: 'White'}),  value: '1'},
+                        {text: formatMessage({id: 'toybot.list_color_red',    default: 'Red'}),    value: '2'},
+                        {text: formatMessage({id: 'toybot.list_color_orange', default: 'Orange'}), value: '3'},
+                        {text: formatMessage({id: 'toybot.list_color_yellow', default: 'Yellow'}), value: '4'},
+                        {text: formatMessage({id: 'toybot.list_color_green',  default: 'Green'}),  value: '5'},
+                        {text: formatMessage({id: 'toybot.list_color_blue',   default: 'Blue'}),   value: '6'},
+                        {text: formatMessage({id: 'toybot.list_color_navy',   default: 'Navy'}),   value: '7'},
+                        {text: formatMessage({id: 'toybot.list_color_violet', default: 'Violet'}), value: '8'},
+                        {text: formatMessage({id: 'toybot.list_color_off',    default: 'Off'}),    value: '9'}
                     ]
-                },                
+                },
                 dropdown_octave: {
                     acceptReporters: true,
                     items: [
-                        {text: formatMessage({id: 'toybot.list_octave_low',    default: 'Low'}),    value: 64}, // 4 octave(0x40)
-                        {text: formatMessage({id: 'toybot.list_octave_middle', default: 'Middle'}), value: 80}, // 5 octave(0x50)
-                        {text: formatMessage({id: 'toybot.list_octave_high',   default: 'High'}),   value: 96}, // 6 octave(0x60)
+                        {text: formatMessage({id: 'toybot.list_octave_low',    default: 'Low'}),    value: '1'}, // 4 octave(0x40)
+                        {text: formatMessage({id: 'toybot.list_octave_middle', default: 'Middle'}), value: '2'}, // 5 octave(0x50)
+                        {text: formatMessage({id: 'toybot.list_octave_high',   default: 'High'}),   value: '3'}, // 6 octave(0x60)
                     ]
                 },
                 dropdown_pitch: {
                     acceptReporters: true,
                     items: [
-                        {text: formatMessage({id: 'toybot.list_pitch_c', default: 'C'}), value: 1},
-                        {text: formatMessage({id: 'toybot.list_pitch_d', default: 'D'}), value: 3},
-                        {text: formatMessage({id: 'toybot.list_pitch_e', default: 'E'}), value: 5},
-                        {text: formatMessage({id: 'toybot.list_pitch_f', default: 'F'}), value: 6},
-                        {text: formatMessage({id: 'toybot.list_pitch_g', default: 'G'}), value: 8},
-                        {text: formatMessage({id: 'toybot.list_pitch_a', default: 'A'}), value: 10},
-                        {text: formatMessage({id: 'toybot.list_pitch_b', default: 'B'}), value: 12},
-                        {text: formatMessage({id: 'toybot.list_pitch_r', default: 'Rest'}), value: -1},
+                        {text: formatMessage({id: 'toybot.list_pitch_c', default: 'C'}), value: '1'},
+                        {text: formatMessage({id: 'toybot.list_pitch_d', default: 'D'}), value: '2'},
+                        {text: formatMessage({id: 'toybot.list_pitch_e', default: 'E'}), value: '3'},
+                        {text: formatMessage({id: 'toybot.list_pitch_f', default: 'F'}), value: '4'},
+                        {text: formatMessage({id: 'toybot.list_pitch_g', default: 'G'}), value: '5'},
+                        {text: formatMessage({id: 'toybot.list_pitch_a', default: 'A'}), value: '6'},
+                        {text: formatMessage({id: 'toybot.list_pitch_b', default: 'B'}), value: '7'},
+                        {text: formatMessage({id: 'toybot.list_pitch_r', default: 'Rest'}), value: '8'},
                     ]                    
                 },
                 dropdown_accidental: {
                     acceptReporters: true,
                     items: [
-                        {text: formatMessage({id: 'toybot.list_accidental_natural', default: 'Natural'}), value: 0},
-                        {text: formatMessage({id: 'toybot.list_accidental_sharp',   default: 'Sharp'}),   value: 1},
-                        {text: formatMessage({id: 'toybot.list_accidental_flat',    default: 'Flat'}),    value: -1}
+                        {text: formatMessage({id: 'toybot.list_accidental_natural', default: 'Natural'}), value: '1'},
+                        {text: formatMessage({id: 'toybot.list_accidental_sharp',   default: 'Sharp'}),   value: '2'},
+                        {text: formatMessage({id: 'toybot.list_accidental_flat',    default: 'Flat'}),    value: '3'}
                     ]
                 },
                 dropdown_beat: {
                     acceptReporters: true,
                     items: [
-                        {text: formatMessage({id: 'toybot.list_beat_oneeight', default: '1/8 of a beats'}), value: 63},
-                        {text: formatMessage({id: 'toybot.list_beat_onefour',  default: '1/4 of a beats'}), value: 125},
-                        {text: formatMessage({id: 'toybot.list_beat_onetwo',   default: '1/2 of a beats'}), value: 250},
-                        {text: formatMessage({id: 'toybot.list_beat_one',      default: '1 beat'}),         value: 500},
-                        {text: formatMessage({id: 'toybot.list_beat_onehalf',  default: '1.5 beats'}),      value: 750},
-                        {text: formatMessage({id: 'toybot.list_beat_two',      default: '2 beats'}),        value: 1000},
-                        {text: formatMessage({id: 'toybot.list_beat_three',    default: '3 beats'}),        value: 1500},
-                        {text: formatMessage({id: 'toybot.list_beat_four',     default: '4 beats'}),        value: 2000}
+                        {text: formatMessage({id: 'toybot.list_beat_oneeight', default: '1/8 of a beats'}), value: '1'},
+                        {text: formatMessage({id: 'toybot.list_beat_onefour',  default: '1/4 of a beats'}), value: '2'},
+                        {text: formatMessage({id: 'toybot.list_beat_onetwo',   default: '1/2 of a beats'}), value: '3'},
+                        {text: formatMessage({id: 'toybot.list_beat_one',      default: '1 beat'}),         value: '4'},
+                        {text: formatMessage({id: 'toybot.list_beat_onehalf',  default: '1.5 beats'}),      value: '5'},
+                        {text: formatMessage({id: 'toybot.list_beat_two',      default: '2 beats'}),        value: '6'},
+                        {text: formatMessage({id: 'toybot.list_beat_three',    default: '3 beats'}),        value: '7'},
+                        {text: formatMessage({id: 'toybot.list_beat_four',     default: '4 beats'}),        value: '8'}
                     ]
                 },
                 dropdown_effect: {
                     acceptReporters: true,
                     items: [
-                        {text: '1', value: 1},
-                        {text: '2', value: 2},
-                        {text: '3', value: 3},
-                        {text: '4', value: 4},
-                        {text: '5', value: 5}
+                        {text: '1', value: '1'},
+                        {text: '2', value: '2'},
+                        {text: '3', value: '3'},
+                        {text: '4', value: '4'},
+                        {text: '5', value: '5'}
                     ]
                 },
                 dropdown_melody: {
                     acceptReporters: true,
                     items: [
-                        {text: '1', value: 13},
-                        {text: '2', value: 14},
-                        {text: '3', value: 15},
-                        {text: '4', value: 16}
+                        {text: '1', value: '1'},
+                        {text: '2', value: '2'},
+                        {text: '3', value: '3'},
+                        {text: '4', value: '4'}
                     ]
                 },
                 dropdown_servo: {
                     acceptReporters: true,
                     items: [
-                        {text: '0', value: 0},
-                        {text: '1', value: 1},
-                        {text: '2', value: 2},
-                        {text: '3', value: 3},
-                        {text: '4', value: 4}
+                        {text: '0', value: '0'},
+                        {text: '1', value: '1'},
+                        {text: '2', value: '2'},
+                        {text: '3', value: '3'},
+                        {text: '4', value: '4'}
                     ]
                 },
                 dropdown_speed: {
                     acceptReporters: true,
                     items: [
-                        {text: '1', value: 1},
-                        {text: '2', value: 2},
-                        {text: '3', value: 3},
-                        {text: '4', value: 4},
-                        {text: '5', value: 5}
+                        {text: '1', value: '1'},
+                        {text: '2', value: '2'},
+                        {text: '3', value: '3'},
+                        {text: '4', value: '4'},
+                        {text: '5', value: '5'}
                     ]
                 },
                 dropdown_dc: {
                     acceptReporters: true,
                     items: [
-                        {text: '1', value: 0},
-                        {text: '2', value: 1},
-                        {text: formatMessage({id: 'toybot.list_all', default: 'All'}), value: 2}
+                        {text: '1', value: '1'},
+                        {text: '2', value: '2'},
+                        {text: formatMessage({id: 'toybot.list_all', default: 'All'}), value: '255'}
                     ]
                 },
                 dropdown_direction: {
                     acceptReporters: true,
                     items: [
-                        {text: formatMessage({id: 'toybot.list_rotation_forward', default: 'Forward rotation'}), value: 1},
-                        {text: formatMessage({id: 'toybot.list_rotation_reverse', default: 'Reverse rotation'}), value: -1},
-                        {text: formatMessage({id: 'toybot.list_rotation_stop',    default: 'Stop'}),             value: 0}
+                        {text: formatMessage({id: 'toybot.list_rotation_forward', default: 'Forward rotation'}), value: '1'},
+                        {text: formatMessage({id: 'toybot.list_rotation_reverse', default: 'Reverse rotation'}), value: '2'},
+                        {text: formatMessage({id: 'toybot.list_rotation_stop',    default: 'Stop'}),             value: '3'}
                     ]
                 },
                 dropdown_servo_all: {
                     acceptReporters: true,
                     items: [
-                        {text: '0', value: 0},
-                        {text: '1', value: 1},
-                        {text: '2', value: 2},
-                        {text: '3', value: 3},
-                        {text: '4', value: 4},
-                        {text: formatMessage({id: 'toybot.list_all', default: 'All'}), value: 5}
+                        {text: '0', value: '0'},
+                        {text: '1', value: '1'},
+                        {text: '2', value: '2'},
+                        {text: '3', value: '3'},
+                        {text: '4', value: '4'},
+                        {text: formatMessage({id: 'toybot.list_all', default: 'All'}), value: '255'}
                     ]
                 },
             }
         };
+    }
+
+    
+    limit (value, min, max) {
+        if (value < min) {
+            value = min;
+        } else if (value > max) {
+            value = max
+        };
+        return value;
     }
 
     returnDelay(us) {
@@ -1024,149 +1130,379 @@ class Scratch3toybotSR {
     }
 
     get_ultrasonic_distance() {
-        const mm = this._peripheral._toybotInfo.distance;
-        return mm / 10;
+        const out = this._peripheral._toybotInfo.distance / 10; // units: cm
+        if(_DEBUG_BLOCK) console.log('get_ultrasonic_distance: ', out);
+        return out;
     }
 
     get_button_state(args) {
-        const button = Number(args['BUTTON']);
         const state = this._peripheral._toybotInfo.button;
-        return state[button] > 0 ? 1 : 0;
-
+        const button = args['BUTTON'];
+        let out = Number.NaN;
+        switch (button) {
+            case '1':
+            case formatMessage({id: 'toybot.list_button_a', default: 'A'}):
+                out = state[0] > 0 ? 1 : 0;
+                break;
+            case '2':
+            case formatMessage({id: 'toybot.list_button_b', default: 'B'}):
+                out = state[1] > 0 ? 1 : 0;
+                break;
+        }
+        if(_DEBUG_BLOCK) console.log('get_button_state: ', out);
+        return out;
     }
 
     get_analog_input() {
         const value = this._peripheral._toybotInfo.analog;
-        return Math.round((value / 1024) * 100)
+        const out = Math.round((value / 1024) * 100);
+        if(_DEBUG_BLOCK) console.log('get_analog_input: ', out);
+        return out;
     }
 
     get_servo_angle(args) {
-        const servo = Number(args['SERVO']);
         const angles = this._peripheral._toybotInfo.servo;
-        return Math.round(angles[servo] / 10);
+        const servo = args['SERVO'];
+        let out = Number.NaN;
+        switch (servo) {
+            case '0':
+            case '1':
+            case '2':
+            case '3':
+            case '4':
+                out = Math.round(angles[Number(servo)] / 10);
+                break;
+        }
+        if(_DEBUG_BLOCK) console.log('get_servo_angle: ', out);
+        return out;
     }
 
     set_led_color_name(args) {
         const rgb = {
-            r: 0x00,
-            g: 0x00,
-            b: 0x00
+            r: Number.NaN,
+            g: Number.NaN,
+            b: Number.NaN
         };
-        const color = Number(args['COLOR']);
-        switch(color) {
-            case 0: rgb.r = 0x00; rgb.g = 0x00; rgb.b = 0x00; break; // off
-            case 1: rgb.r = 0xFF; rgb.g = 0xFF; rgb.b = 0xFF; break; // White
-            case 2: rgb.r = 0xFF; rgb.g = 0x00; rgb.b = 0x00; break; // Red
-            case 3: rgb.r = 0xFF; rgb.g = 0x80; rgb.b = 0x00; break; // Orange
-            case 4: rgb.r = 0xFF; rgb.g = 0xFF; rgb.b = 0x00; break; // Yellow
-            case 5: rgb.r = 0x00; rgb.g = 0xFF; rgb.b = 0x00; break; // Green
-            case 6: rgb.r = 0x00; rgb.g = 0x00; rgb.b = 0xFF; break; // Blue
-            case 7: rgb.r = 0x00; rgb.g = 0x00; rgb.b = 0x80; break; // Navy
-            case 8: rgb.r = 0x7F; rgb.g = 0x00; rgb.b = 0xFF; break; // Violet
+        switch(args['COLOR']) {
+            case '1': // White
+            case formatMessage({id: 'toybot.list_color_white', default: 'White'}):
+                rgb.r = 0xFF;
+                rgb.g = 0xFF;
+                rgb.b = 0xFF;
+                break;
+            case '2': // Red
+            case formatMessage({id: 'toybot.list_color_red', default: 'Red'}):
+                rgb.r = 0xFF;
+                rgb.g = 0x00;
+                rgb.b = 0x00;
+                break;
+            case '3': // Orange
+            case formatMessage({id: 'toybot.list_color_orange', default: 'Orange'}):
+                rgb.r = 0xFF;
+                rgb.g = 0x80;
+                rgb.b = 0x00;
+                break; 
+            case '4': // Yellow
+            case formatMessage({id: 'toybot.list_color_yellow', default: 'Yellow'}):
+                rgb.r = 0xFF;
+                rgb.g = 0xFF;
+                rgb.b = 0x00;
+                break;
+            case '5': // Green
+            case formatMessage({id: 'toybot.list_color_green', default: 'Green'}):
+                rgb.r = 0x00;
+                rgb.g = 0x80;
+                rgb.b = 0x00;
+                break;
+            case '6': // Blue
+            case formatMessage({id: 'toybot.list_color_blue', default: 'Blue'}):
+                rgb.r = 0x00;
+                rgb.g = 0x00;
+                rgb.b = 0xFF;
+                break;
+            case '7': // Navy
+            case formatMessage({id: 'toybot.list_color_navy', default: 'Navy'}):
+                rgb.r = 0x00;
+                rgb.g = 0x00;
+                rgb.b = 0x80;
+                break;
+            case '8': // Violet
+            case formatMessage({id: 'toybot.list_color_violet', default: 'Violet'}):
+                rgb.r = 0x7F;
+                rgb.g = 0x00;
+                rgb.b = 0xFF;
+                break;
+            case '9': // off
+            case formatMessage({id: 'toybot.list_color_off', default: 'Off'}):
+                rgb.r = 0x00;
+                rgb.g = 0x00;
+                rgb.b = 0x00;
+                break;
         }
+        if(_DEBUG_BLOCK) console.log('set_led_color_name: ', rgb);
         this._peripheral.addLedControl(rgb);
         return this.returnDelay(DefaultBlockReturnDelay);
     }
 
     set_led_rgb(args) {
-        const limit = (value) => {
-            if (value < 0) {
-                value = 0;
-            } else if (value > 255) {
-                value = 255
-            };
-            return value;
-        }
+        const r = Number(args['RED']);
+        const g = Number(args['GREEN']);
+        const b = Number(args['BLUE']);
         const rgb = {
-            r: limit(Math.round(Number(args['RED']) * 2.55)),
-            g: limit(Math.round(Number(args['GREEN']) * 2.55)),
-            b: limit(Math.round(Number(args['BLUE']) * 2.55))
+            r: this.limit(Math.round((Number.isNaN(r) ? 0 : r) * 2.55), 0, 255),
+            g: this.limit(Math.round((Number.isNaN(g) ? 0 : g) * 2.55), 0, 255),
+            b: this.limit(Math.round((Number.isNaN(b) ? 0 : b) * 2.55), 0, 255)
         };
+        if(_DEBUG_BLOCK) console.log('set_led_rgb: ', rgb);
         this._peripheral.addLedControl(rgb);
         return this.returnDelay(DefaultBlockReturnDelay);
     }
-    
+
     set_play_score(args) {
-        const beat = Number(args['BEAT']);
-        const octave = Number(args['OCTAVE']);
-        const accidental = Number(args['ACCIDENTAL']);
-        const pitch = Number(args['PITCH']);
-        const note = {
-            beat: 0,
-            pitch: 0
-        };
+        let blockReturnDelay = Number.NaN; // units: ms
+        let octave = Number.NaN;
+        let accidental = Number.NaN;
+        let pitch = Number.NaN;
+        const note = [
+            {
+                beat: Number.NaN,
+                pitch: Number.NaN
+            }
+        ];
+        switch (args['BEAT']) {
+            case '1':
+            case formatMessage({id: 'toybot.list_beat_oneeight', default: '1/8 of a beats'}):
+                blockReturnDelay = 63;
+                break;
+            case '2':
+            case formatMessage({id: 'toybot.list_beat_onefour', default: '1/4 of a beats'}):
+                blockReturnDelay = 125;
+                break;
+            case '3':
+            case formatMessage({id: 'toybot.list_beat_onetwo', default: '1/2 of a beats'}):
+                blockReturnDelay = 250;
+                break;
+            case '4':
+            case formatMessage({id: 'toybot.list_beat_one', default: '1 beat'}):
+                blockReturnDelay = 500;
+                break;
+            case '5':
+            case formatMessage({id: 'toybot.list_beat_onehalf', default: '1.5 beats'}):
+                blockReturnDelay = 750;
+                break;
+            case '6':
+            case formatMessage({id: 'toybot.list_beat_two', default: '2 beats'}):
+                blockReturnDelay = 1000;
+                break;
+            case '7':
+            case formatMessage({id: 'toybot.list_beat_three', default: '3 beats'}):
+                blockReturnDelay = 1500;
+                break;
+            case '8':
+            case formatMessage({id: 'toybot.list_beat_four', default: '4 beats'}):
+                blockReturnDelay = 2000;
+                break;
+        }
+        switch (args['OCTAVE']) {
+            case '1':
+            case formatMessage({id: 'toybot.list_octave_low', default: 'Low'}):
+                octave = 0x40;
+                break;
+            case '2':
+            case formatMessage({id: 'toybot.list_octave_middle', default: 'Middle'}):
+                octave = 0x50;
+                break;
+            case '3':
+            case formatMessage({id: 'toybot.list_octave_high', default: 'High'}):
+                octave = 0x60;
+                break;
+        }
+        switch (args['ACCIDENTAL']) {
+            case '1':
+            case formatMessage({id: 'toybot.list_accidental_natural', default: 'Natural'}):
+                accidental = 0;
+                break;
+            case '2':
+            case formatMessage({id: 'toybot.list_accidental_sharp', default: 'Sharp'}):
+                accidental = 1;
+                break;
+            case '3':
+            case formatMessage({id: 'toybot.list_accidental_flat', default: 'Flat'}):
+                accidental = -1;
+                break;
+        }
+        switch (args['PITCH']) {
+            case '1':
+            case formatMessage({id: 'toybot.list_pitch_c', default: 'C'}):
+                pitch = 1;
+                break;
+            case '2':
+            case formatMessage({id: 'toybot.list_pitch_d', default: 'D'}):
+                pitch = 3;
+                break;
+            case '3':
+            case formatMessage({id: 'toybot.list_pitch_e', default: 'E'}):
+                pitch = 5;
+                break;
+            case '4':
+            case formatMessage({id: 'toybot.list_pitch_f', default: 'F'}):
+                pitch = 6;
+                break;
+            case '5':
+            case formatMessage({id: 'toybot.list_pitch_g', default: 'G'}):
+                pitch = 8;
+                break;
+            case '6':
+            case formatMessage({id: 'toybot.list_pitch_a', default: 'A'}):
+                pitch = 10;
+                break;
+            case '7':
+            case formatMessage({id: 'toybot.list_pitch_b', default: 'B'}):
+                pitch = 12;
+                break;
+            case '8':
+            case formatMessage({id: 'toybot.list_pitch_r', default: 'Rest'}):
+                pitch = -1;
+                break;
+        }
         if (pitch > -1) {
             const temp = pitch + accidental
+            let out = 0;
             switch (temp) {
                 case 0:
-                    note.pitch = (octave - 0x10) | 12;
+                    out = (octave - 0x10) | 12;
                     break;
                 case 13:
-                    note.pitch = (octave + 0x10) | 1;
+                    out = (octave + 0x10) | 1;
                     break;
                 default:
-                    note.pitch = octave | temp;
+                    out = octave | temp;
                     break;
             }
+            note[0].beat = 0; // continue
+            note[0].pitch = out;
+        } else {
+            note[0].beat = 0;  // continue
+            note[0].pitch = 0; // rest
         }
-        this._peripheral.addMelodyPlayScore(note); // continue, rest
+        if(_DEBUG_BLOCK) console.log('set_play_score: ', note);
+        this._peripheral.addMelodyPlayScore(note);
         return new Promise(resolve => {
-            setTimeout(() => {
-                this._peripheral.addMelodyPlayScore({beat: 11, pitch: 0});
-                resolve();
-            }, beat);
+            setTimeout(
+                () => {
+                    const rest = [
+                        {
+                            beat: 11, // 1/8 of a beats
+                            pitch: 0  // rest
+                        }
+                    ];
+                    this._peripheral.addMelodyPlayScore(rest);
+                    resolve();
+                },
+                Number.isNaN(blockReturnDelay) ? DefaultBlockReturnDelay : blockReturnDelay
+            );
         });
     }
 
     set_play_sound_effect(args) {
-        const list = {
-            title: Number(args['EFFECT']),
-            play: 1
-        };
-        this._peripheral.addMelodyPlayList(list);
+        const index = args['EFFECT'];
+        const melody = {
+            title: Number.NaN,
+            play: Number.NaN
+        }
+        switch (index) {
+            case '1':
+            case '2':
+            case '3':
+            case '4':
+            case '5':
+                melody.title = Number(index);
+                melody.play = 1; // play
+                break;
+        }
+        if(_DEBUG_BLOCK) console.log('set_play_sound_effect: ', melody);
+        this._peripheral.addMelodyPlayList(melody);
         return this.returnDelay(DefaultBlockReturnDelay);
     }
 
     set_play_melody(args) {
-        const list = {
-            title: Number(args['MELODY']),
-            play: 1
-        };
-        this._peripheral.addMelodyPlayList(list);
+        const index = args['MELODY'];
+        const melody = {
+            title: Number.NaN,
+            play: Number.NaN
+        }
+        switch (index) {
+            case '1':
+            case '2':
+            case '3':
+            case '4':
+                melody.title = (Number(index) + 12);
+                melody.play = 1; // play
+                break;
+        }
+        if(_DEBUG_BLOCK) console.log('set_play_melody: ', melody);
+        this._peripheral.addMelodyPlayList(melody);
         return this.returnDelay(DefaultBlockReturnDelay);
     }
 
     set_servo_each(args) {
+        const id = args['SERVO'];
+        const speed = args['SPEED'];
+        const angle = Number(args['ANGLE']);
         const servo = [{
-            id: Number(args['SERVO']),
-            speed: Number(args['SPEED']),
-            position: Number(args['ANGLE']) * 10
+            id: Number.NaN,
+            speed: Number.NaN,
+            position: Number.NaN
         }];
-        if (servo.position < 0) {
-            servo.position = 0;
-        } else if (servo.position > 1800) {
-            servo.position = 1800;
+
+        switch (id) {
+            case '0':
+            case '1':
+            case '2':
+            case '3':
+            case '4':
+                servo[0].id = Number(id);
+                break;
         }
+        switch (speed) {
+            case '1':
+            case '2':
+            case '3':
+            case '4':
+            case '5':
+                servo[0].speed = Number(speed);
+                break;
+        }
+        if (!Number.isNaN(angle)) {
+            servo[0].position = this.limit(angle, 0, 180) * 10;
+        }
+        if(_DEBUG_BLOCK) console.log('set_servo_each: ', servo);
         this._peripheral.addServoControl(servo);
         return this.returnDelay(DefaultBlockReturnDelay);
     }
 
     set_servo_all(args) {
         const speed = Number(args['SPEED']);
-        const position = [
-            Number(args['ANGLE_0']) * 10,
-            Number(args['ANGLE_1']) * 10,
-            Number(args['ANGLE_2']) * 10,
-            Number(args['ANGLE_3']) * 10,
-            Number(args['ANGLE_4']) * 10
+        const angle = [
+            Number(args['ANGLE_0']),
+            Number(args['ANGLE_1']),
+            Number(args['ANGLE_2']),
+            Number(args['ANGLE_3']),
+            Number(args['ANGLE_4'])
         ];
         const servo = [
-            { id: 0, speed: speed, position: position[0] },
-            { id: 1, speed: speed, position: position[1] },
-            { id: 2, speed: speed, position: position[2] },
-            { id: 3, speed: speed, position: position[3] },
-            { id: 4, speed: speed, position: position[4] },
+            { id: 0, speed: speed, position: Number.NaN },
+            { id: 1, speed: speed, position: Number.NaN },
+            { id: 2, speed: speed, position: Number.NaN },
+            { id: 3, speed: speed, position: Number.NaN },
+            { id: 4, speed: speed, position: Number.NaN },
         ];
+        for (let i = 0; i < 5; i++) {
+            if (!Number.isNaN(angle[i])) {
+                servo[i].position = this.limit(angle[i], 0, 180) * 10;
+            }
+        }
+        if(_DEBUG_BLOCK) console.log('set_servo_all: ', servo);
         this._peripheral.addServoControl(servo);
         return this.returnDelay(DefaultBlockReturnDelay);
     }
@@ -1180,33 +1516,70 @@ class Scratch3toybotSR {
             { id: 3, speed: speed, position: 900 },
             { id: 4, speed: speed, position: 900 },
         ];
+        if(_DEBUG_BLOCK) console.log('set_servo_home: ', servo);
         this._peripheral.addServoControl(servo);
         return this.returnDelay(DefaultBlockReturnDelay);
     }
     
     set_analog_output(args) {
-        const pwm =  Math.round(Number(args['PWM']) * 10.23);
-        this._peripheral.addPwmControl(pwm);
+        const pwm = Number(args['PWM']);
+        let out = Number.NaN;
+        if (!Number.isNaN(pwm)) {
+            out = this.limit(Math.round(pwm * 10.23), 0, 1023);
+        }
+        if(_DEBUG_BLOCK) console.log('set_analog_output: ', out);
+        this._peripheral.addPwmControl(out);
         return this.returnDelay(DefaultBlockReturnDelay);
     }
 
     set_dc_run(args) {
-        const id = Number(args['DC']);
-        const speed = Number(args['SPEED']) * 51 * Number(args['DIRECTION']);
+        const id = args['DC'];
+        let direction = Number.NaN;
         const dc = [
-            { id: 0, speed: speed },
-            { id: 1, speed: speed },
+            { id: 0, speed: Number.NaN },
+            { id: 1, speed: Number.NaN },
         ];
-        if (id < 2) {
-            this._peripheral.addDcControl([dc[id]]);
-        } else {
-            this._peripheral.addDcControl(dc);
+        switch (args['DIRECTION']) {
+            case '1':
+            case formatMessage({id: 'toybot.list_rotation_forward', default: 'Forward rotation'}):
+                direction = 1;
+                break;
+            case '2':
+            case formatMessage({id: 'toybot.list_rotation_reverse', default: 'Reverse rotation'}):
+                direction = -1;
+                break;                
+            case '3':
+            case formatMessage({id: 'toybot.list_rotation_stop',    default: 'Stop'}):
+                    direction = 0;
+                    break;
         }
+        switch (args['SPEED']) {
+            case '1':
+            case '2':
+            case '3':
+            case '4':
+            case '5':
+                const speed = Number(args['SPEED']) * 51 * direction;
+                dc[0].speed = speed;
+                dc[1].speed = speed;
+                break;
+        }
+        switch (id) {
+            case '1':
+            case '2':
+                this._peripheral.addDcControl([dc[Number(id) - 1]]);
+                break;
+            case '255':
+            case formatMessage({id: 'toybot.list_all', default: 'All'}):
+                this._peripheral.addDcControl(dc);
+                break;
+        }
+        if(_DEBUG_BLOCK) console.log('set_dc_run: ', dc);
         return this.returnDelay(DefaultBlockReturnDelay);
     }
 
     set_servo_offset(args) {
-        const id = Number(args['SERVO']);
+        const id = args['SERVO'];
         const position = this._peripheral._toybotInfo.servo;
         const offset = this._peripheral._toybotInfo.servoOffset;
         const servoOffset = [
@@ -1216,11 +1589,20 @@ class Scratch3toybotSR {
             { id: 3, offset: position[3] - 900 + offset[3] },
             { id: 4, offset: position[4] - 900 + offset[4] },
         ];
-        if (id < 4) {
-            this._peripheral.addServoOffset([servoOffset[id]]);
-        } else {
-            this._peripheral.addServoOffset(servoOffset);
+        switch (id) {
+            case '0':
+            case '1':
+            case '2':
+            case '3':
+            case '4':
+                this._peripheral.addServoOffset([servoOffset[Number(id)]]);
+                break;
+            case '5':
+            case formatMessage({id: 'toybot.list_all', default: 'All'}):
+                this._peripheral.addServoOffset(servoOffset);
+                break;
         }
+        if(_DEBUG_BLOCK) console.log('set_servo_offset: ', servoOffset);
         return this.returnDelay(DefaultBlockReturnDelay);
     }
 
@@ -1232,6 +1614,7 @@ class Scratch3toybotSR {
             { id: 3, offset: 0 },
             { id: 4, offset: 0 },
         ];
+        if(_DEBUG_BLOCK) console.log('set_servo_reset: ', servoOffset);
         this._peripheral.addServoOffset(servoOffset);
         return this.returnDelay(DefaultBlockReturnDelay);
     }
