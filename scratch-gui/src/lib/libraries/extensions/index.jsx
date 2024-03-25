@@ -46,13 +46,6 @@ import gdxforInsetIconURL from './gdxfor/gdxfor-small.svg';
 import gdxforConnectionIconURL from './gdxfor/gdxfor-illustration.svg';
 import gdxforConnectionSmallIconURL from './gdxfor/gdxfor-small.svg';
 
-import aibotIconURL from './aibot/aibot.png';
-import aibotInsetIconURL from './aibot/aibot-small.svg';
-import aibotConnectionIconURL from './aibot/aibot-illustration.svg';
-import aibotConnectionSmallIconURL from './aibot/aibot-small.svg';
-import aibotPeripheralImage from './aibot/aibot-illustration.svg';
-import aibotMenuImage from './aibot/aibot-small.svg';
-
 import ml2scratchIconURL from './ml2scratch/ml2scratch.png';
 import ml2scratchInsetIconURL from './ml2scratch/ml2scratch-small.png';
 
@@ -76,6 +69,19 @@ import posenet2scratchInsetIconURL from './posenet2scratch/posenet2scratch-small
 
 import speech2scratchIconURL from './speech2scratch/speech2scratch.png';
 import speech2scratchInsetIconURL from './speech2scratch/speech2scratch-small.png';
+
+
+import aibotIconURL from './aibot/aibot.png';
+import aibotInsetIconURL from './aibot/aibot-small.svg';
+import aibotConnectionIconURL from './aibot/aibot-illustration.svg';
+import aibotConnectionSmallIconURL from './aibot/aibot-small.svg';
+import aibotPeripheralImage from './aibot/aibot-illustration.svg';
+import aibotMenuImage from './aibot/aibot-small.svg';
+
+import toybotIconURL from './toybot/toybot_main.png';
+import toybotInsetIconURL from './toybot/toybot-small.svg';
+import toybotConnectionIconURL from './toybot/toybot-illustration.svg';
+import toybotConnectionSmallIconURL from './toybot/toybot-small.svg';
 
 export default [
     {
@@ -109,6 +115,39 @@ export default [
             />
         ),
         helpLink: 'https://www.jinirobot.com'
+    },
+    {
+        name: 'ToyBot',
+        extensionId: 'toybot',
+        collaborator: 'JINI Co.,Ltd',
+        iconURL: toybotIconURL,
+        insetIconURL: toybotInsetIconURL,
+        description: (
+            <FormattedMessage
+                defaultMessage="Connect your projects with the world."
+                description="Description for the 'ToyBot' extension"
+                id="gui.extension.toybot.description"
+            />
+        ),
+        featured: true,
+        disabled: false,
+        bluetoothRequired: false,
+        internetConnectionRequired: false,
+        usbRequired: true,
+        launchPeripheralConnectionFlow: true,
+        useAutoScan: false,
+
+        connectionIconURL: toybotConnectionIconURL,
+        connectionSmallIconURL: toybotConnectionSmallIconURL,
+        connectingMessage: (
+            <FormattedMessage
+                defaultMessage="Connecting"
+                description="Message to help people connect to their ToyBot."
+                id="gui.extension.toybot.connectingMessage"
+            />
+        ),
+        helpLink: 'https://www.jinirobot.com'
+
     },
     // '음성인식' 클래스 미표시 변경으로 인해 주석 처리    
     // {

@@ -13,28 +13,31 @@ const builtinExtensions = {
     // but serves as a reference for loading core blocks as extensions.
     coreExample: () => require('../blocks/scratch3_core_example'),
     // These are the non-core built-in extensions.
-    pen: () => require('../extensions/scratch3_pen'),
-    wedo2: () => require('../extensions/scratch3_wedo2'),
-    music: () => require('../extensions/scratch3_music'),
-    microbit: () => require('../extensions/scratch3_microbit'),
-    text2speech: () => require('../extensions/scratch3_text2speech'),
-    translate: () => require('../extensions/scratch3_translate'),
-    videoSensing: () => require('../extensions/scratch3_video_sensing'),
-    ev3: () => require('../extensions/scratch3_ev3'),
-    makeymakey: () => require('../extensions/scratch3_makeymakey'),
-    boost: () => require('../extensions/scratch3_boost'),
-    gdxfor: () => require('../extensions/scratch3_gdx_for'),
     aibot: () => require('../extensions/scratch3_aibot'),
-    ml2scratch: () => require('../extensions/scratch3_ml2scratch'),
-    tm2scratch: () => require('../extensions/scratch3_tm2scratch'),
-    tmpose2scratch: () => require('../extensions/scratch3_tmpose2scratch'),
-    facemesh2scratch: () => require('../extensions/scratch3_facemesh2scratch'),
-    handpose2scratch: () => require('../extensions/scratch3_handpose2scratch'),
-    ic2scratch: () => require('../extensions/scratch3_ic2scratch'),
+    toybot: () => require('../extensions/scratch3_toybot'),
     posenet2scratch:  () => require('../extensions/scratch3_posenet2scratch'),
+    ic2scratch: () => require('../extensions/scratch3_ic2scratch'),
+    facemesh2scratch: () => require('../extensions/scratch3_facemesh2scratch'),
+    tm2scratch: () => require('../extensions/scratch3_tm2scratch'),
+    music: () => require('../extensions/scratch3_music'),
+    pen: () => require('../extensions/scratch3_pen'),
+    videoSensing: () => require('../extensions/scratch3_video_sensing'),
+    text2speech: () => require('../extensions/scratch3_text2speech'),
     speech2scratch:  () => require('../extensions/scratch3_speech2scratch'),
 
+    // 사용하지 않는것으로 결정되어 주석 처리. 송하권, 24.03.14
+    //translate: () => require('../extensions/scratch3_translate'),
+    //tmpose2scratch: () => require('../extensions/scratch3_tmpose2scratch'),
+    //handpose2scratch: () => require('../extensions/scratch3_handpose2scratch'),
+    //ml2scratch: () => require('../extensions/scratch3_ml2scratch'),
+    //gdxfor: () => require('../extensions/scratch3_gdx_for'),
 
+    // 타사 제품 표시 할 필요가 없으므로 주석 처리. 송하권, 24.03.14
+    //wedo2: () => require('../extensions/scratch3_wedo2'),
+    //microbit: () => require('../extensions/scratch3_microbit'),
+    //ev3: () => require('../extensions/scratch3_ev3'),
+    //makeymakey: () => require('../extensions/scratch3_makeymakey'),
+    //boost: () => require('../extensions/scratch3_boost'),
 };
 
 /**

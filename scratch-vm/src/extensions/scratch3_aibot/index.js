@@ -159,17 +159,16 @@ class aibotSR{
         this.pin_modes.fill(-1);
     }
     _onConnect () {
-        console.log('connected AIBot....');
+        //console.log('connected AIBot....');
         this.connected = true; 
         
         this._timeoutID = window.setInterval(
             () => this._serial.handleDisconnectError('SerialDataStoppedError'),            
             3000000
         );
-                  
     }
     scan () {
-        console.log('scanning....');
+        //console.log('scanning....');
         if (this._serial) {
             this._serial.disconnect();
         }
@@ -190,13 +189,13 @@ class aibotSR{
             return;
         }
         if (this._serial) {
-            this._serial.connectPeripheral(id);
+            this._serial.connectPeripheral(id + '\\' + this._extensionId);
             //console.log('connected....');
         }
-    }    
+    }
     disconnect () {
         window.clearInterval(this._timeoutID);
-        console.log('disconnect....');
+        //console.log('disconnect....');
         if (this._serial) {
             this._serial.disconnect();
         }

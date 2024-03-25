@@ -41,19 +41,15 @@
     ```bash
     $ git clone https://github.com/JINI-Robot/JINI_Scratch.git
     ```
-* yarn 글로벌 설치
-    ```bash
-    $ npm install -g yarn
-    ```
 
 ### 2. scratch-l10n 준비
-**&nbsp;&nbsp;&nbsp;scratch-l10n에서 언어 번역 관련 코드 수정 시 반드시 'yarn build 및 'yarn link'를 진행할 것.**
+**&nbsp;&nbsp;&nbsp;scratch-l10n에서 언어 번역 관련 코드 수정 시 매번 반드시 scratch-gui 종료 → scratch-l10n 폴더에서 'yarn build' → scratch-gui 재실행 순으로 진행 것.**
 
 * scratch-l10n 폴더로 이동
     ```bash
     $ cd scratch-l10n
     ```
-* scratch-l10n에 node_modules 설치
+* (최초)scratch-l10n에 node_modules 설치
     ```bash
     $ yarn
     ```
@@ -72,7 +68,7 @@
     ```bash
     $ cd scratch-vm
     ```
-* scratch-vm에 node_modules 설치
+* (최초)scratch-vm에 node_modules 설치
     ```bash
     $ yarn
     ```
@@ -91,7 +87,7 @@
     ```bash
     $ cd scratch-gui
     ```
-* scratch-gui에 node_modules 설치
+* (최초)scratch-gui에 node_modules 설치
     ```bash
     $ yarn
     ```
@@ -120,18 +116,22 @@
 
 ### 2. 패키징
 * scratch-gui > build 폴더를 scratch-app 폴더로 복사
+    ```bash
+    $ mkdir "../scratch-app/build"
+    $ xcopy "./build" "../scratch-app/build" /s /h /e /d /y
+    ```
 * scratch-app 폴더로 이동
     ```bash
     $ cd ..          // scratch-gui의 상위 폴더로 이동
     $ cd scratch-app // scratch-app 폴더로 이동
     ```
 
-* scratch-app에 node_modules 설치
+* (최초)scratch-app에 node_modules 설치
     ```bash
     $ yarn
     ```
 
-* 복사된 scratch-app > build 폴더의 프로그램 실행 확인(생략 가능)
+* (생략 가능)복사된 scratch-app > build 폴더의 프로그램 실행 확인
     ```bash
     $ yarn start
     ```

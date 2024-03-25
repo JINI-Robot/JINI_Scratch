@@ -1,5 +1,10 @@
-{   
-     
+{
+    "gui.extension.aibot.description": "AIBot과 함께 인공지능을 배워요.",
+    "gui.extension.aibot.connectingMessage": "AIBot에 연결 중...",
+
+    "gui.extension.toybot.description": "ToyBot과 함께 놀아요.",
+    "gui.extension.toybot.connectingMessage": "ToyBot에 연결 중...",
+
     "gui.extension.posenet2scratch.name": "자세인식",
     "gui.extension.posenet2scratch.description": "자세를 인식해볼까요.",    
 	
@@ -24,8 +29,6 @@
     "gui.extension.tm2scratch.name": "티처블머신",
     "gui.extension.tm2scratch.description": "티처블머신을 사용해볼까요.",
 
-    "gui.extension.aibot.description": "AIBot과 함께 인공지능을 배워요.",
-    "gui.extension.aibot.connectingMessage": "AIBot에 연결 중...",
     "gui.alerts.lostPeripheralConnection": "스크래치와 {extensionName} 사이의 연결이 끊어졌습니다.",
     "gui.alerts.tryAgain": "다시 시도",
     "gui.alerts.download": "다운로드",
