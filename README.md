@@ -1,6 +1,6 @@
 # JINI Scratch Release Note
 
-##3.3.0
+## 3.3.0
 ### ToyBot 서보모터 속도 제한
 - 서보모터 회전 속도를 최대 4까지로 제한
 
